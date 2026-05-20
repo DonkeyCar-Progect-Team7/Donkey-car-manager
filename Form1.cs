@@ -16,7 +16,17 @@ namespace Donkey_car_manager
         private int normalWidth = 1147;
         private int expandedWidth = 1600;
         private int targetWidth = 1147;
+        // 🌟 기존 전역 변수들이 있는 곳(class Form1 바로 아래)에 추가하세요!
+        private bool isPlaying = false;
 
+        // 🌟 코드 창 빈 곳(메서드 바깥)에 추가하세요! 자동 넘기기를 안전하게 끄는 메서드입니다.
+        private void StopAutoPlay()
+        {
+            timerPlay.Stop();
+            btnAutoPic.Text = "자동 넘기기";
+            btnAutoPic.BackColor = SystemColors.Control; // 버튼 색상 원상복구
+            isPlaying = false;
+        }
         // 3. 프로그램 생성자 (대괄호 짝을 완벽히 맞춤)
         public Form1()
         {
@@ -505,20 +515,77 @@ namespace Donkey_car_manager
                 isDebugExpanded = false;
             }
         }
-        /*private void ShowImage(int index)
+
+        private void timerPlay_Tick(object sender, EventArgs e)
         {
-            // ... 기존 이미지 출력 로직 ...
+            // 다음으로 넘어갈 프레임 인덱스 계산
+            int nextIndex = currentImageIndex + 1;
 
-            // 우측 디버그 표에 현재 프레임 데이터 표시하기
-            // (파일명에서 속도와 조향각을 파싱해왔다고 가정)
-            double currentSpeed = 0.65;
-            double currentAngle = -0.15;
+            // 만약 마지막 프레임에 도달했다면 자동으로 정지
+            if (nextIndex >= imageFiles.Count)
+            {
+                StopAutoPlay();
+                MessageBox.Show("마지막 프레임에 도달하여 자동 넘기기를 종료합니다.", "알림");
+                return;
+            }
 
-            // 표에 행(Row) 추가해서 실시간 로그 쌓기
-            dgvDebug.Rows.Add(index + 1, currentSpeed, currentAngle);
+            // 인덱스를 1 증가시키고 트랙바(슬라이더) 위치 변경
+            currentImageIndex = nextIndex;
+            trbFrame.Value = currentImageIndex;
 
-            // 스크롤을 맨 아래로 내려서 실시간 디버깅 느낌 주기
-            dgvDebug.FirstDisplayedScrollingRowIndex = dgvDebug.RowCount - 1;
-        }*/
+            // 이미지 출력 및 페이지 리스트박스 동기화 처리
+            ShowImage(currentImageIndex);
+        }
+
+        private void btnAutoPic_Click(object sender, EventArgs e)
+        {
+            // 1. 재생할 이미지 파일이 없는 경우 예외 처리
+            if (imageFiles == null || imageFiles.Count == 0)
+            {
+                MessageBox.Show("이미지 폴더를 먼저 열어주세요.", "알림");
+                return;
+            }
+
+            if (!isPlaying)
+            {
+                // 2. txbFPS 텍스트박스에서 사용자가 입력한 FPS 값 읽어오기
+                // 숫자가 아니거나 0 이하를 입력하면 기본값인 10 FPS로 강제 설정
+                if (!int.TryParse(txbFPS.Text, out int fps) || fps <= 0)
+                {
+                    fps = 10;
+                    txbFPS.Text = "10";
+                }
+
+                // 3. FPS를 타이머 작동 주기(밀리초, ms)로 계산하여 대입 (Interval = 1000 / FPS)
+                // 예: 20 FPS를 입력하면 1000 / 20 = 50ms 마다 타이머가 신호를 주어 화면이 넘어갑니다.
+                timerPlay.Interval = 1000 / fps;
+
+                // 4. 타이머 가동 및 버튼 상태 변경
+                timerPlay.Start();
+                btnAutoPic.Text = "정지";
+                btnAutoPic.BackColor = Color.Tomato; // 작동 중임을 알리기 위해 버튼을 붉은색으로 변경
+                isPlaying = true;
+            }
+            else
+            {
+                // 5. 이미 재생 중일 때 버튼을 누르면 정지
+                StopAutoPlay();
+            }
+        }
+        /*private void ShowImage(int index)
+{
+// ... 기존 이미지 출력 로직 ...
+
+// 우측 디버그 표에 현재 프레임 데이터 표시하기
+// (파일명에서 속도와 조향각을 파싱해왔다고 가정)
+double currentSpeed = 0.65;
+double currentAngle = -0.15;
+
+// 표에 행(Row) 추가해서 실시간 로그 쌓기
+dgvDebug.Rows.Add(index + 1, currentSpeed, currentAngle);
+
+// 스크롤을 맨 아래로 내려서 실시간 디버깅 느낌 주기
+dgvDebug.FirstDisplayedScrollingRowIndex = dgvDebug.RowCount - 1;
+}*/
     }
 }

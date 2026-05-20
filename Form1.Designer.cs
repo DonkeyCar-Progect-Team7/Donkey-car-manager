@@ -28,6 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            components = new System.ComponentModel.Container();
             trbFrame = new TrackBar();
             btnPageUp = new Button();
             btnFileOpen = new Button();
@@ -46,6 +47,9 @@
             lblFrameNum = new Label();
             btnFileMultiDel = new Button();
             dgvDebug = new DataGridView();
+            btnAutoPic = new Button();
+            txbFPS = new TextBox();
+            timerPlay = new System.Windows.Forms.Timer(components);
             ((System.ComponentModel.ISupportInitialize)trbFrame).BeginInit();
             ((System.ComponentModel.ISupportInitialize)picCurFrame).BeginInit();
             ((System.ComponentModel.ISupportInitialize)dgvDebug).BeginInit();
@@ -119,7 +123,7 @@
             // 
             lblAcceleration.AutoSize = true;
             lblAcceleration.Font = new Font("맑은 고딕", 14.25F);
-            lblAcceleration.Location = new Point(12, 68);
+            lblAcceleration.Location = new Point(12, 98);
             lblAcceleration.Name = "lblAcceleration";
             lblAcceleration.Size = new Size(50, 25);
             lblAcceleration.TabIndex = 10;
@@ -129,7 +133,7 @@
             // 
             lblSteeringAngle.AutoSize = true;
             lblSteeringAngle.Font = new Font("맑은 고딕", 14.25F);
-            lblSteeringAngle.Location = new Point(12, 93);
+            lblSteeringAngle.Location = new Point(12, 123);
             lblSteeringAngle.Name = "lblSteeringAngle";
             lblSteeringAngle.Size = new Size(69, 25);
             lblSteeringAngle.TabIndex = 11;
@@ -209,7 +213,7 @@
             lblFrameNum.BackColor = Color.Transparent;
             lblFrameNum.Font = new Font("맑은 고딕", 11.25F, FontStyle.Regular, GraphicsUnit.Point, 129);
             lblFrameNum.ForeColor = SystemColors.ControlText;
-            lblFrameNum.Location = new Point(244, 21);
+            lblFrameNum.Location = new Point(12, 47);
             lblFrameNum.Name = "lblFrameNum";
             lblFrameNum.Size = new Size(97, 20);
             lblFrameNum.TabIndex = 9;
@@ -234,11 +238,36 @@
             dgvDebug.Size = new Size(440, 237);
             dgvDebug.TabIndex = 19;
             // 
+            // btnAutoPic
+            // 
+            btnAutoPic.Font = new Font("맑은 고딕", 12F);
+            btnAutoPic.Location = new Point(12, 254);
+            btnAutoPic.Name = "btnAutoPic";
+            btnAutoPic.Size = new Size(211, 51);
+            btnAutoPic.TabIndex = 20;
+            btnAutoPic.Text = "자동 넘기기";
+            btnAutoPic.UseVisualStyleBackColor = true;
+            btnAutoPic.Click += btnAutoPic_Click;
+            // 
+            // txbFPS
+            // 
+            txbFPS.Font = new Font("맑은 고딕", 14.25F, FontStyle.Regular, GraphicsUnit.Point, 129);
+            txbFPS.Location = new Point(12, 215);
+            txbFPS.Name = "txbFPS";
+            txbFPS.Size = new Size(211, 33);
+            txbFPS.TabIndex = 21;
+            // 
+            // timerPlay
+            // 
+            timerPlay.Tick += timerPlay_Tick;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(1584, 667);
+            Controls.Add(txbFPS);
+            Controls.Add(btnAutoPic);
             Controls.Add(dgvDebug);
             Controls.Add(btnFileMultiDel);
             Controls.Add(lblSteeringAngle);
@@ -286,5 +315,8 @@
         private Label lblFrameNum;
         private Button btnFileMultiDel;
         private DataGridView dgvDebug;
+        private Button btnAutoPic;
+        private TextBox txbFPS;
+        private System.Windows.Forms.Timer timerPlay;
     }
 }
