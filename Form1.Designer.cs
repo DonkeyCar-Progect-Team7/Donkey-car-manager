@@ -68,6 +68,7 @@
             btnPageUp.TabIndex = 2;
             btnPageUp.Text = "▲";
             btnPageUp.UseVisualStyleBackColor = true;
+            btnPageUp.Click += btnPageUp_Click;
             // 
             // btnFileOpen
             // 
@@ -97,6 +98,7 @@
             btnPageDown.TabIndex = 7;
             btnPageDown.Text = "▼";
             btnPageDown.UseVisualStyleBackColor = true;
+            btnPageDown.Click += btnPageDown_Click;
             // 
             // lblTitle
             // 
@@ -146,6 +148,8 @@
             txbFrame.Name = "txbFrame";
             txbFrame.Size = new Size(123, 29);
             txbFrame.TabIndex = 13;
+            txbFrame.KeyDown += txbFrame_KeyDown;
+            txbFrame.KeyPress += txbFrame_KeyPress;
             // 
             // btnFrameMove
             // 
@@ -156,6 +160,7 @@
             btnFrameMove.TabIndex = 14;
             btnFrameMove.Text = "프레임 이동";
             btnFrameMove.UseVisualStyleBackColor = true;
+            btnFrameMove.Click += btnFrameMove_Click;
             // 
             // lblCurFilePage
             // 
@@ -172,6 +177,7 @@
             txbFileNum.Name = "txbFileNum";
             txbFileNum.Size = new Size(68, 23);
             txbFileNum.TabIndex = 16;
+            txbFileNum.KeyDown += txbFileNum_KeyDown;
             // 
             // btnExtend
             // 
