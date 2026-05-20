@@ -4,21 +4,32 @@ namespace Donkey_car_manager
 {
     public partial class Form1 : Form
     {
-        // 이미지 파일들의 전체 경로를 담을 리스트
+        // 1. 기존 이미지 및 페이징 변수들
         private List<string> imageFiles = new List<string>();
-
-        // 현재 표시 중인 이미지의 인덱스 (0부터 시작)
         private int currentImageIndex = 0;
+        private int pageSize = 20;
+        private int currentPage = 0;
+        private int totalPages = 0;
 
-        private int pageSize = 20;     // 한 페이지에 보여줄 파일(프레임) 개수
-        private int currentPage = 0;   // 현재 페이지 번호 (0부터 시작)
-        private int totalPages = 0;    // 전체 페이지 개수
+        // 2. 기록창 확장을 위한 전역 변수들 (클래스 바로 아래 정상 배치)
+        private bool isDebugExpanded = false;
+        private int normalWidth = 1147;
+        private int expandedWidth = 1600;
+        private int targetWidth = 1147;
 
+        // 3. 프로그램 생성자 (대괄호 짝을 완벽히 맞춤)
         public Form1()
         {
             InitializeComponent();
         }
 
+        // 4. 폼 로드 이벤트
+        private void Form1_Load(object sender, EventArgs e)
+        {
+            // 시작할 때는 기본 크기로 설정
+            this.Width = normalWidth;
+            targetWidth = normalWidth;
+        }
         private void label1_Click(object sender, EventArgs e)
         {
 
@@ -474,6 +485,24 @@ namespace Donkey_car_manager
                     UpdateListPage();
                     ShowImage(currentImageIndex);
                 }
+            }
+        }
+
+        private void btnExtend_Click(object sender, EventArgs e)
+        {
+            if (!isDebugExpanded)
+            {
+                // 닫혀있던 상태 -> 한 번에 확장 상태로 변경
+                this.Width = expandedWidth;     // 1450 크기로 바로 변경
+                btnExtend.Text = "기록창 닫기";  // 버튼 텍스트 변경
+                isDebugExpanded = true;
+            }
+            else
+            {
+                // 열려있던 상태 -> 한 번에 기본 상태로 변경
+                this.Width = normalWidth;       // 1147 크기로 바로 변경
+                btnExtend.Text = "기록창 열기";
+                isDebugExpanded = false;
             }
         }
     }

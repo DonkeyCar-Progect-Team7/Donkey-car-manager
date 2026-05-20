@@ -191,6 +191,7 @@
             btnExtend.TabIndex = 17;
             btnExtend.Text = "기록창 열기";
             btnExtend.UseVisualStyleBackColor = true;
+            btnExtend.Click += btnExtend_Click;
             // 
             // picCurFrame
             // 
@@ -227,7 +228,7 @@
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(1131, 667);
+            ClientSize = new Size(1584, 667);
             Controls.Add(btnFileMultiDel);
             Controls.Add(lblSteeringAngle);
             Controls.Add(lblFrameNum);
@@ -247,6 +248,7 @@
             Controls.Add(trbFrame);
             Name = "Form1";
             Text = "Form1";
+            Load += Form1_Load;
             ((System.ComponentModel.ISupportInitialize)trbFrame).EndInit();
             ((System.ComponentModel.ISupportInitialize)picCurFrame).EndInit();
             ResumeLayout(false);
