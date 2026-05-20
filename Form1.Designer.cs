@@ -43,6 +43,8 @@
             btnFrameMove = new Button();
             lblCurFilePage = new Label();
             txbFileNum = new TextBox();
+            btnExpandUi = new Button();
+            button1 = new Button();
             ((System.ComponentModel.ISupportInitialize)picCurFrame).BeginInit();
             ((System.ComponentModel.ISupportInitialize)trbFrame).BeginInit();
             SuspendLayout();
@@ -103,10 +105,10 @@
             // lblTitle
             // 
             lblTitle.AutoSize = true;
-            lblTitle.Font = new Font("티웨이_하늘", 11.9999981F, FontStyle.Italic, GraphicsUnit.Point, 129);
+            lblTitle.Font = new Font("Microsoft Sans Serif", 11.9999981F, FontStyle.Italic, GraphicsUnit.Point, 129);
             lblTitle.Location = new Point(12, 12);
             lblTitle.Name = "lblTitle";
-            lblTitle.Size = new Size(191, 19);
+            lblTitle.Size = new Size(159, 20);
             lblTitle.TabIndex = 8;
             lblTitle.Text = "Donkey Car Manager";
             lblTitle.Click += label1_Click;
@@ -185,11 +187,33 @@
             txbFileNum.Size = new Size(68, 23);
             txbFileNum.TabIndex = 16;
             // 
+            // btnExpandUi
+            // 
+            btnExpandUi.Font = new Font("맑은 고딕", 12F);
+            btnExpandUi.Location = new Point(1037, 63);
+            btnExpandUi.Name = "btnExpandUi";
+            btnExpandUi.Size = new Size(87, 37);
+            btnExpandUi.TabIndex = 17;
+            btnExpandUi.Text = "->";
+            btnExpandUi.UseVisualStyleBackColor = true;
+            // 
+            // button1
+            // 
+            button1.Font = new Font("맑은 고딕", 12F);
+            button1.Location = new Point(30, 140);
+            button1.Name = "button1";
+            button1.Size = new Size(87, 37);
+            button1.TabIndex = 18;
+            button1.Text = "->";
+            button1.UseVisualStyleBackColor = true;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(1131, 667);
+            Controls.Add(button1);
+            Controls.Add(btnExpandUi);
             Controls.Add(txbFileNum);
             Controls.Add(lblCurFilePage);
             Controls.Add(btnFrameMove);
@@ -230,5 +254,7 @@
         private Button btnFrameMove;
         private Label lblCurFilePage;
         private TextBox txbFileNum;
+        private Button btnExpandUi;
+        private Button button1;
     }
 }
