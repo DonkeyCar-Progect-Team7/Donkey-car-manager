@@ -505,5 +505,20 @@ namespace Donkey_car_manager
                 isDebugExpanded = false;
             }
         }
+        /*private void ShowImage(int index)
+        {
+            // ... 기존 이미지 출력 로직 ...
+
+            // 우측 디버그 표에 현재 프레임 데이터 표시하기
+            // (파일명에서 속도와 조향각을 파싱해왔다고 가정)
+            double currentSpeed = 0.65;
+            double currentAngle = -0.15;
+
+            // 표에 행(Row) 추가해서 실시간 로그 쌓기
+            dgvDebug.Rows.Add(index + 1, currentSpeed, currentAngle);
+
+            // 스크롤을 맨 아래로 내려서 실시간 디버깅 느낌 주기
+            dgvDebug.FirstDisplayedScrollingRowIndex = dgvDebug.RowCount - 1;
+        }*/
     }
 }

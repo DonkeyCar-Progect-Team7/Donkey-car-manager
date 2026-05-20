@@ -45,8 +45,10 @@
             picCurFrame = new PictureBox();
             lblFrameNum = new Label();
             btnFileMultiDel = new Button();
+            dgvDebug = new DataGridView();
             ((System.ComponentModel.ISupportInitialize)trbFrame).BeginInit();
             ((System.ComponentModel.ISupportInitialize)picCurFrame).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)dgvDebug).BeginInit();
             SuspendLayout();
             // 
             // trbFrame
@@ -224,11 +226,20 @@
             btnFileMultiDel.UseVisualStyleBackColor = true;
             btnFileMultiDel.Click += btnFileMultiDel_Click;
             // 
+            // dgvDebug
+            // 
+            dgvDebug.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            dgvDebug.Location = new Point(1136, 12);
+            dgvDebug.Name = "dgvDebug";
+            dgvDebug.Size = new Size(440, 237);
+            dgvDebug.TabIndex = 19;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(1584, 667);
+            Controls.Add(dgvDebug);
             Controls.Add(btnFileMultiDel);
             Controls.Add(lblSteeringAngle);
             Controls.Add(lblFrameNum);
@@ -251,6 +262,7 @@
             Load += Form1_Load;
             ((System.ComponentModel.ISupportInitialize)trbFrame).EndInit();
             ((System.ComponentModel.ISupportInitialize)picCurFrame).EndInit();
+            ((System.ComponentModel.ISupportInitialize)dgvDebug).EndInit();
             ResumeLayout(false);
             PerformLayout();
         }
@@ -273,5 +285,6 @@
         private PictureBox picCurFrame;
         private Label lblFrameNum;
         private Button btnFileMultiDel;
+        private DataGridView dgvDebug;
     }
 }
