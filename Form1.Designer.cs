@@ -44,6 +44,7 @@
             btnExtend = new Button();
             picCurFrame = new PictureBox();
             lblFrameNum = new Label();
+            btnFileMultiDel = new Button();
             ((System.ComponentModel.ISupportInitialize)trbFrame).BeginInit();
             ((System.ComponentModel.ISupportInitialize)picCurFrame).BeginInit();
             SuspendLayout();
@@ -73,7 +74,7 @@
             // btnFileOpen
             // 
             btnFileOpen.Font = new Font("맑은 고딕", 12F);
-            btnFileOpen.Location = new Point(908, 256);
+            btnFileOpen.Location = new Point(908, 257);
             btnFileOpen.Name = "btnFileOpen";
             btnFileOpen.Size = new Size(211, 51);
             btnFileOpen.TabIndex = 4;
@@ -86,6 +87,7 @@
             lstFiles.FormattingEnabled = true;
             lstFiles.Location = new Point(86, 385);
             lstFiles.Name = "lstFiles";
+            lstFiles.SelectionMode = SelectionMode.MultiExtended;
             lstFiles.Size = new Size(1033, 274);
             lstFiles.TabIndex = 6;
             // 
@@ -134,12 +136,13 @@
             // btnFileDelete
             // 
             btnFileDelete.Font = new Font("맑은 고딕", 12F);
-            btnFileDelete.Location = new Point(908, 313);
+            btnFileDelete.Location = new Point(908, 314);
             btnFileDelete.Name = "btnFileDelete";
             btnFileDelete.Size = new Size(211, 51);
             btnFileDelete.TabIndex = 12;
             btnFileDelete.Text = "파일 삭제";
             btnFileDelete.UseVisualStyleBackColor = true;
+            btnFileDelete.Click += btnFileDelete_Click;
             // 
             // txbFrame
             // 
@@ -209,11 +212,23 @@
             lblFrameNum.TabIndex = 9;
             lblFrameNum.Text = "프레임 번호 :";
             // 
+            // btnFileMultiDel
+            // 
+            btnFileMultiDel.Font = new Font("맑은 고딕", 12F);
+            btnFileMultiDel.Location = new Point(12, 311);
+            btnFileMultiDel.Name = "btnFileMultiDel";
+            btnFileMultiDel.Size = new Size(211, 51);
+            btnFileMultiDel.TabIndex = 18;
+            btnFileMultiDel.Text = "파일 다중 삭제";
+            btnFileMultiDel.UseVisualStyleBackColor = true;
+            btnFileMultiDel.Click += btnFileMultiDel_Click;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(1131, 667);
+            Controls.Add(btnFileMultiDel);
             Controls.Add(lblSteeringAngle);
             Controls.Add(lblFrameNum);
             Controls.Add(lblAcceleration);
@@ -255,5 +270,6 @@
         private Button btnExtend;
         private PictureBox picCurFrame;
         private Label lblFrameNum;
+        private Button btnFileMultiDel;
     }
 }

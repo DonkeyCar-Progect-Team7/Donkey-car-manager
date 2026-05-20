@@ -224,7 +224,7 @@ namespace Donkey_car_manager
 
         }
 
-        
+
         private void txbFrame_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.Enter)
@@ -276,6 +276,203 @@ namespace Donkey_car_manager
                 else
                 {
                     MessageBox.Show("올바른 숫자를 입력해주세요.", "알림");
+                }
+            }
+        }
+
+        private void btnFileDelete_Click(object sender, EventArgs e)
+        {
+            // 삭제할 파일이 있는지 먼저 확인
+            if (imageFiles == null || imageFiles.Count == 0 || currentImageIndex < 0 || currentImageIndex >= imageFiles.Count)
+            {
+                MessageBox.Show("삭제할 파일이 없습니다.", "알림", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            // 사용자에게 진짜 삭제할 것인지 한 번 더 확인 (안전장치)
+            DialogResult result = MessageBox.Show("현재 프레임 이미지를 정말로 삭제하시겠습니까?", "삭제 확인",
+                                                  MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+
+            if (result == DialogResult.Yes)
+            {
+                try
+                {
+                    // 1. 현재 픽쳐박스에 띄워진 이미지를 해제합니다. (파일 잠금 해제 필수!)
+                    if (picCurFrame.Image != null)
+                    {
+                        picCurFrame.Image.Dispose();
+                        picCurFrame.Image = null;
+                    }
+
+                    // 가비지 컬렉터를 강제로 실행하여 파일 스트림 리소스를 완전히 풀어줍니다.
+                    GC.Collect();
+                    GC.WaitForPendingFinalizers();
+
+                    // 2. 실제 컴퓨터 디스크에서 파일 삭제
+                    string fileToDelete = imageFiles[currentImageIndex];
+                    if (System.IO.File.Exists(fileToDelete))
+                    {
+                        System.IO.File.Delete(fileToDelete);
+                    }
+
+                    // 3. 프로그램 내부 이미지 데이터 리스트에서 해당 경로 삭제
+                    imageFiles.RemoveAt(currentImageIndex);
+
+                    // 4. 파일을 지운 후 데이터 수에 따른 UI 예외 처리
+                    if (imageFiles.Count == 0)
+                    {
+                        // 모든 파일이 다 지워졌을 때 초기화 상태로 만듦
+                        trbFrame.Maximum = 0;
+                        trbFrame.Value = 0;
+                        currentPage = 0;
+                        totalPages = 0;
+                        currentImageIndex = 0;
+
+                        lstFiles.Items.Clear();
+                        lblCurFilePage.Text = "0 / 0";
+                        MessageBox.Show("폴더 내의 모든 이미지가 삭제되었습니다.", "알림");
+                    }
+                    else
+                    {
+                        // 리스트의 맨 마지막 프레임을 지운 경우라면 인덱스를 하나 앞으로 당겨줍니다.
+                        if (currentImageIndex >= imageFiles.Count)
+                        {
+                            currentImageIndex = imageFiles.Count - 1;
+                        }
+
+                        // 전체 페이지 수 재계산
+                        totalPages = (int)Math.Ceiling((double)imageFiles.Count / pageSize);
+
+                        // 프레임이 줄어들면서 현재 페이지 범위를 벗어났다면 현재 페이지 번호를 조절합니다.
+                        if (currentPage >= totalPages)
+                        {
+                            currentPage = totalPages - 1;
+                        }
+
+                        // 트랙바 범위 및 값 최신화
+                        trbFrame.Maximum = imageFiles.Count - 1;
+                        trbFrame.Value = currentImageIndex;
+
+                        // 리스트박스, 라벨, 픽쳐박스 화면 갱신
+                        UpdateListPage();
+                        ShowImage(currentImageIndex);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"파일을 삭제하는 중 오류가 발생했습니다:\n{ex.Message}", "오류",
+                                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+
+                    // 삭제 실패 시 이미지를 다시 띄워 화면을 복구합니다.
+                    ShowImage(currentImageIndex);
+                }
+            }
+        }
+
+        private void btnFileMultiDel_Click(object sender, EventArgs e)
+        {
+            // 1. 리스트박스에서 선택된 항목이 하나도 없는지 검사
+            if (lstFiles.SelectedIndices.Count == 0)
+            {
+                MessageBox.Show("다중 삭제할 파일을 리스트에서 선택해주세요.\n(Ctrl 이나 Shift를 누른 채 클릭하면 여러 개 선택이 가능합니다.)",
+                                "알림", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            int deleteCount = lstFiles.SelectedIndices.Count;
+
+            // 사용자에게 진짜 삭제할 것인지 최종 확인 (안전장치)
+            DialogResult result = MessageBox.Show($"리스트에서 선택한 {deleteCount}개의 프레임 이미지를 정말로 디스크에서 영구 삭제하시겠습니까?",
+                                                  "다중 삭제 확인", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+
+            if (result == DialogResult.Yes)
+            {
+                try
+                {
+                    // 2. 현재 픽쳐박스에 띄워진 이미지 리소스 해제 (파일 잠금 현상 방지)
+                    if (picCurFrame.Image != null)
+                    {
+                        picCurFrame.Image.Dispose();
+                        picCurFrame.Image = null;
+                    }
+
+                    // 가비지 컬렉터를 구동하여 파일 스트림 리소스를 확실하게 정리합니다.
+                    GC.Collect();
+                    GC.WaitForPendingFinalizers();
+
+                    // 3. 🌟 핵심: 선택된 리스트박스 행 번호들을 '역순(큰 숫자부터)'으로 정렬하여 추출
+                    // 인덱스 뒤에서부터 지워야 리스트가 앞으로 당겨지면서 데이터가 꼬이는 것을 막을 수 있습니다.
+                    List<int> selectedIndices = lstFiles.SelectedIndices.Cast<int>().OrderByDescending(i => i).ToList();
+
+                    foreach (int listBoxIndex in selectedIndices)
+                    {
+                        // (현재 페이지 시작점) + (리스트박스 안에서의 선택 위치) = 실제 imageFiles 리스트의 인덱스
+                        int actualIndex = (currentPage * pageSize) + listBoxIndex;
+
+                        if (actualIndex >= 0 && actualIndex < imageFiles.Count)
+                        {
+                            string fileToDelete = imageFiles[actualIndex];
+
+                            // 실제 컴퓨터 디스크(HDD/SSD)에서 파일 삭제
+                            if (System.IO.File.Exists(fileToDelete))
+                            {
+                                System.IO.File.Delete(fileToDelete);
+                            }
+
+                            // 프로그램 내부 데이터 리스트에서 경로 제거
+                            imageFiles.RemoveAt(actualIndex);
+                        }
+                    }
+
+                    MessageBox.Show($"{deleteCount}개의 파일 삭제를 완료했습니다.", "완료", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+                    // 4. 데이터가 삭제된 후 남은 수에 따라 UI 최신화
+                    if (imageFiles.Count == 0)
+                    {
+                        // 모든 파일이 삭제되어 데이터가 아예 없을 때 초기화
+                        trbFrame.Maximum = 0;
+                        trbFrame.Value = 0;
+                        currentPage = 0;
+                        totalPages = 0;
+                        currentImageIndex = 0;
+
+                        lstFiles.Items.Clear();
+                        lblCurFilePage.Text = "0 / 0";
+                    }
+                    else
+                    {
+                        // 전체 페이지 수 다시 계산
+                        totalPages = (int)Math.Ceiling((double)imageFiles.Count / pageSize);
+
+                        // 프레임 대량 삭제로 인해 현재 페이지 번호가 최대 페이지를 넘어가면 마지막 페이지로 고정
+                        if (currentPage >= totalPages)
+                        {
+                            currentPage = totalPages - 1;
+                        }
+
+                        // 현재 보고 있던 이미지 포인터(인덱스)가 삭제 후의 리스트 범위를 벗어나지 않도록 조정
+                        if (currentImageIndex >= imageFiles.Count)
+                        {
+                            currentImageIndex = imageFiles.Count - 1;
+                        }
+
+                        // 트랙바 맥스값 및 슬라이더 위치 최신화
+                        trbFrame.Maximum = imageFiles.Count - 1;
+                        trbFrame.Value = currentImageIndex;
+
+                        // 화면 UI(리스트박스 목록, 라벨, 이미지 뷰어) 리프레시
+                        UpdateListPage();
+                        ShowImage(currentImageIndex);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"파일 다중 삭제 작업 중 오류가 발생했습니다:\n{ex.Message}", "오류",
+                                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+
+                    // 오류가 발생하더라도 현재 상태로 화면을 복구시킵니다.
+                    UpdateListPage();
+                    ShowImage(currentImageIndex);
                 }
             }
         }
