@@ -50,6 +50,7 @@
             btnAutoPic = new Button();
             txbFPS = new TextBox();
             timerPlay = new System.Windows.Forms.Timer(components);
+            label1 = new Label();
             ((System.ComponentModel.ISupportInitialize)trbFrame).BeginInit();
             ((System.ComponentModel.ISupportInitialize)picCurFrame).BeginInit();
             ((System.ComponentModel.ISupportInitialize)dgvDebug).BeginInit();
@@ -62,7 +63,7 @@
             trbFrame.Maximum = 10000;
             trbFrame.Name = "trbFrame";
             trbFrame.Size = new Size(668, 45);
-            trbFrame.TabIndex = 1;
+            trbFrame.TabIndex = 6;
             trbFrame.Scroll += trbFrame_Scroll;
             trbFrame.MouseDown += trbFrame_MouseDown;
             // 
@@ -71,8 +72,8 @@
             btnPageUp.Font = new Font("맑은 고딕", 26.25F, FontStyle.Regular, GraphicsUnit.Point, 129);
             btnPageUp.Location = new Point(12, 385);
             btnPageUp.Name = "btnPageUp";
-            btnPageUp.Size = new Size(68, 116);
-            btnPageUp.TabIndex = 2;
+            btnPageUp.Size = new Size(68, 139);
+            btnPageUp.TabIndex = 3;
             btnPageUp.Text = "▲";
             btnPageUp.UseVisualStyleBackColor = true;
             btnPageUp.Click += btnPageUp_Click;
@@ -80,10 +81,10 @@
             // btnFileOpen
             // 
             btnFileOpen.Font = new Font("맑은 고딕", 12F);
-            btnFileOpen.Location = new Point(908, 257);
+            btnFileOpen.Location = new Point(908, 206);
             btnFileOpen.Name = "btnFileOpen";
             btnFileOpen.Size = new Size(211, 51);
-            btnFileOpen.TabIndex = 4;
+            btnFileOpen.TabIndex = 10;
             btnFileOpen.Text = "파일 열기";
             btnFileOpen.UseVisualStyleBackColor = true;
             btnFileOpen.Click += btnFileOpen_Click;
@@ -94,16 +95,16 @@
             lstFiles.Location = new Point(86, 385);
             lstFiles.Name = "lstFiles";
             lstFiles.SelectionMode = SelectionMode.MultiExtended;
-            lstFiles.Size = new Size(1033, 274);
+            lstFiles.Size = new Size(1033, 304);
             lstFiles.TabIndex = 6;
             // 
             // btnPageDown
             // 
             btnPageDown.Font = new Font("맑은 고딕", 26.25F, FontStyle.Regular, GraphicsUnit.Point, 129);
-            btnPageDown.Location = new Point(12, 539);
+            btnPageDown.Location = new Point(11, 549);
             btnPageDown.Name = "btnPageDown";
-            btnPageDown.Size = new Size(68, 116);
-            btnPageDown.TabIndex = 7;
+            btnPageDown.Size = new Size(68, 139);
+            btnPageDown.TabIndex = 5;
             btnPageDown.Text = "▼";
             btnPageDown.UseVisualStyleBackColor = true;
             btnPageDown.Click += btnPageDown_Click;
@@ -115,7 +116,7 @@
             lblTitle.Location = new Point(12, 17);
             lblTitle.Name = "lblTitle";
             lblTitle.Size = new Size(216, 25);
-            lblTitle.TabIndex = 8;
+            lblTitle.TabIndex = 0;
             lblTitle.Text = "Donkey Car Manager";
             lblTitle.Click += label1_Click;
             // 
@@ -142,10 +143,10 @@
             // btnFileDelete
             // 
             btnFileDelete.Font = new Font("맑은 고딕", 12F);
-            btnFileDelete.Location = new Point(908, 314);
+            btnFileDelete.Location = new Point(908, 263);
             btnFileDelete.Name = "btnFileDelete";
             btnFileDelete.Size = new Size(211, 51);
-            btnFileDelete.TabIndex = 12;
+            btnFileDelete.TabIndex = 11;
             btnFileDelete.Text = "파일 삭제";
             btnFileDelete.UseVisualStyleBackColor = true;
             btnFileDelete.Click += btnFileDelete_Click;
@@ -156,7 +157,7 @@
             txbFrame.Location = new Point(908, 12);
             txbFrame.Name = "txbFrame";
             txbFrame.Size = new Size(123, 29);
-            txbFrame.TabIndex = 13;
+            txbFrame.TabIndex = 7;
             txbFrame.KeyDown += txbFrame_KeyDown;
             txbFrame.KeyPress += txbFrame_KeyPress;
             // 
@@ -166,7 +167,7 @@
             btnFrameMove.Location = new Point(1037, 12);
             btnFrameMove.Name = "btnFrameMove";
             btnFrameMove.Size = new Size(87, 29);
-            btnFrameMove.TabIndex = 14;
+            btnFrameMove.TabIndex = 8;
             btnFrameMove.Text = "프레임 이동";
             btnFrameMove.UseVisualStyleBackColor = true;
             btnFrameMove.Click += btnFrameMove_Click;
@@ -182,10 +183,10 @@
             // 
             // txbFileNum
             // 
-            txbFileNum.Location = new Point(12, 507);
+            txbFileNum.Location = new Point(12, 525);
             txbFileNum.Name = "txbFileNum";
             txbFileNum.Size = new Size(68, 23);
-            txbFileNum.TabIndex = 16;
+            txbFileNum.TabIndex = 4;
             txbFileNum.KeyDown += txbFileNum_KeyDown;
             // 
             // btnExtend
@@ -194,7 +195,7 @@
             btnExtend.Location = new Point(908, 47);
             btnExtend.Name = "btnExtend";
             btnExtend.Size = new Size(216, 46);
-            btnExtend.TabIndex = 17;
+            btnExtend.TabIndex = 9;
             btnExtend.Text = "기록창 열기";
             btnExtend.UseVisualStyleBackColor = true;
             btnExtend.Click += btnExtend_Click;
@@ -222,10 +223,10 @@
             // btnFileMultiDel
             // 
             btnFileMultiDel.Font = new Font("맑은 고딕", 12F);
-            btnFileMultiDel.Location = new Point(12, 311);
+            btnFileMultiDel.Location = new Point(908, 320);
             btnFileMultiDel.Name = "btnFileMultiDel";
             btnFileMultiDel.Size = new Size(211, 51);
-            btnFileMultiDel.TabIndex = 18;
+            btnFileMultiDel.TabIndex = 12;
             btnFileMultiDel.Text = "파일 다중 삭제";
             btnFileMultiDel.UseVisualStyleBackColor = true;
             btnFileMultiDel.Click += btnFileMultiDel_Click;
@@ -233,7 +234,7 @@
             // dgvDebug
             // 
             dgvDebug.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            dgvDebug.Location = new Point(1136, 12);
+            dgvDebug.Location = new Point(1132, 12);
             dgvDebug.Name = "dgvDebug";
             dgvDebug.Size = new Size(440, 237);
             dgvDebug.TabIndex = 19;
@@ -241,10 +242,10 @@
             // btnAutoPic
             // 
             btnAutoPic.Font = new Font("맑은 고딕", 12F);
-            btnAutoPic.Location = new Point(12, 254);
+            btnAutoPic.Location = new Point(12, 311);
             btnAutoPic.Name = "btnAutoPic";
             btnAutoPic.Size = new Size(211, 51);
-            btnAutoPic.TabIndex = 20;
+            btnAutoPic.TabIndex = 2;
             btnAutoPic.Text = "자동 넘기기";
             btnAutoPic.UseVisualStyleBackColor = true;
             btnAutoPic.Click += btnAutoPic_Click;
@@ -252,20 +253,31 @@
             // txbFPS
             // 
             txbFPS.Font = new Font("맑은 고딕", 14.25F, FontStyle.Regular, GraphicsUnit.Point, 129);
-            txbFPS.Location = new Point(12, 215);
+            txbFPS.Location = new Point(59, 272);
             txbFPS.Name = "txbFPS";
-            txbFPS.Size = new Size(211, 33);
-            txbFPS.TabIndex = 21;
+            txbFPS.Size = new Size(164, 33);
+            txbFPS.TabIndex = 1;
             // 
             // timerPlay
             // 
             timerPlay.Tick += timerPlay_Tick;
             // 
+            // label1
+            // 
+            label1.AutoSize = true;
+            label1.Font = new Font("맑은 고딕", 14.25F);
+            label1.Location = new Point(11, 275);
+            label1.Name = "label1";
+            label1.Size = new Size(42, 25);
+            label1.TabIndex = 22;
+            label1.Text = "FPS";
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(1584, 667);
+            ClientSize = new Size(1584, 704);
+            Controls.Add(label1);
             Controls.Add(txbFPS);
             Controls.Add(btnAutoPic);
             Controls.Add(dgvDebug);
@@ -318,5 +330,6 @@
         private Button btnAutoPic;
         private TextBox txbFPS;
         private System.Windows.Forms.Timer timerPlay;
+        private Label label1;
     }
 }
