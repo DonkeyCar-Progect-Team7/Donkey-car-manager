@@ -41,6 +41,7 @@ namespace Donkey_car_manager
         public Form1()
         {
             InitializeComponent();
+            this.lstFiles.MouseWheel += new MouseEventHandler(lstFiles_MouseWheel);
         }
 
         // 4. 폼 로드 이벤트
@@ -65,7 +66,13 @@ namespace Donkey_car_manager
                 if (fbd.ShowDialog() == DialogResult.OK)
                 {
                     // 1. 선택한 폴더에서 JPG 이미지 파일 목록을 배열로 가져옵니다.
-                    string[] files = System.IO.Directory.GetFiles(fbd.SelectedPath, "*.jpg");
+                    // 대소문자 .jpg, .JPG는 물론이고 .jpeg까지 알아서 다 찾아주는 코드입니다.
+                    string[] files = System.IO.Directory.GetFiles(fbd.SelectedPath, "*.*")
+                        .Where(s => s.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) ||
+                                    s.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase) ||
+                                    s.EndsWith(".png", StringComparison.OrdinalIgnoreCase) ||
+                                    s.EndsWith(".bmp", StringComparison.OrdinalIgnoreCase))
+                        .ToArray();
 
                     // 2. 아까 만든 새 바구니(carImages)를 깨끗하게 비워줍니다.
                     carImages.Clear();
@@ -153,32 +160,32 @@ namespace Donkey_car_manager
         {
             if (carImages == null) return;
 
-            // 1. 기존 리스트뷰에 있던 아이템들을 싹 비워줍니다.
+            // 1. 기존 리스트뷰 아이템들 초기화
             lstFiles.Items.Clear();
 
-            // 2. 현재 페이지의 시작 인덱스와 끝 인덱스 계산
             int startIndex = currentPage * pageSize;
             int endIndex = Math.Min(startIndex + pageSize, carImages.Count);
 
-            // 3. 현재 페이지에 해당하는 파일들만 리스트뷰에 탐색기 형태로 넣어줍니다.
+            // 2. 현재 페이지의 파일들을 루프 돌며 리스트뷰에 삽입
             for (int i = startIndex; i < endIndex; i++)
             {
                 string filePath = carImages[i].FilePath;
                 string fileName = System.IO.Path.GetFileName(filePath);
-
-                // 메모리에 미리 저장해둔 수정 시간을 문자열로 예쁘게 포맷팅
                 string fileTime = carImages[i].WriteTime.ToString("yyyy-MM-dd HH:mm:ss");
 
-                // 리스트뷰의 행(Row) 생성: 첫 번째 열에는 파일명
-                ListViewItem item = new ListViewItem(fileName);
-                // 두 번째 열에는 수정 시간 추가
+                // 🌟 1부터 시작하는 전체 순번 계산 (인덱스는 0부터 시작하므로 i + 1)
+                string fileNumber = (i + 1).ToString();
+
+                // [행 추가] 맨 첫 번째 열(번호)에 순번을 집어넣습니다.
+                ListViewItem item = new ListViewItem(fileNumber);
+
+                // 두 번째 열(파일명)과 세 번째 열(수정 시간)에 데이터를 하위 항목으로 붙입니다.
+                item.SubItems.Add(fileName);
                 item.SubItems.Add(fileTime);
 
-                // 리스트뷰에 최종 추가
                 lstFiles.Items.Add(item);
             }
 
-            // 4. 페이지 표시 라벨 갱신
             lblCurFilePage.Text = $"{currentPage + 1} / {totalPages}";
         }
         private void btnPageUp_Click(object sender, EventArgs e)
@@ -319,7 +326,42 @@ namespace Donkey_car_manager
                 }
             }
         }
+        private void lstFiles_MouseWheel(object sender, MouseEventArgs e)
+        {
+            if (carImages == null || carImages.Count == 0) return;
+            if (isPlaying) StopAutoPlay(); // 자동 재생 중이면 정지
 
+            // e.Delta가 0보다 크면 마우스 휠을 위로(Up) 굴린 것, 0보다 작으면 아래로(Down) 굴린 것
+            if (e.Delta > 0)
+            {
+                // 휠을 위로 굴리면 -> 이전 페이지로 이동
+                if (currentPage > 0)
+                {
+                    currentPage--;
+                    currentImageIndex = currentPage * pageSize; // 새 페이지의 첫 번째 이미지로 인덱스 설정
+
+                    UpdateListPage();
+                    ShowImage(currentImageIndex);
+                    trbFrame.Value = currentImageIndex; // 트랙바 동기화
+                }
+            }
+            else if (e.Delta < 0)
+            {
+                // 휠을 아래로 굴리면 -> 다음 페이지로 이동
+                if (currentPage < totalPages - 1)
+                {
+                    currentPage++;
+                    currentImageIndex = currentPage * pageSize; // 새 페이지의 첫 번째 이미지로 인덱스 설정
+
+                    UpdateListPage();
+                    ShowImage(currentImageIndex);
+                    trbFrame.Value = currentImageIndex; // 트랙바 동기화
+                }
+            }
+
+            // 🌟 핵심: 리스트뷰 자체의 기본 세로 스크롤바가 멋대로 움직이는 것을 방지합니다.
+            ((HandledMouseEventArgs)e).Handled = true;
+        }
         private void btnFileDelete_Click(object sender, EventArgs e)
         {
             // 삭제할 파일이 있는지 먼저 확인
@@ -584,37 +626,53 @@ namespace Donkey_car_manager
 
         private void lstFiles_ColumnClick(object sender, ColumnClickEventArgs e)
         {
-            // 데이터가 없으면 정렬하지 않음
             if (carImages == null || carImages.Count == 0) return;
             if (isPlaying) StopAutoPlay(); // 자동 재생 중이면 정지
 
-            // 클릭할 때마다 정렬 방향을 반대로 토글 (오름차순 <-> 내림차순)
+            // 클릭할 때마다 정렬 방향을 반대로 토글 (True <-> False)
             isAscending = !isAscending;
 
-            // e.Column은 클릭한 컬럼의 번호입니다 (0: 파일명, 1: 수정 시간)
-            if (e.Column == 0)
+            if (e.Column == 1)
             {
-                // 1열(파일명) 헤더 클릭 시 메모리 상에서 초고속 정렬
+                // 1열: 파일명 정렬 (정상 작동 확인됨)
                 carImages = isAscending
                     ? carImages.OrderBy(f => System.IO.Path.GetFileName(f.FilePath)).ToList()
                     : carImages.OrderByDescending(f => System.IO.Path.GetFileName(f.FilePath)).ToList();
             }
-            else if (e.Column == 1)
+            else if (e.Column == 2)
             {
-                // 2열(수정 시간) 헤더 클릭 시 메모리 상에서 초고속 정렬 (디스크 접근이 없어 렉이 없습니다)
-                carImages = isAscending
-                    ? carImages.OrderBy(f => f.WriteTime).ToList()
-                    : carImages.OrderByDescending(f => f.WriteTime).ToList();
+                // 2열: 🌟 수정 시간 날짜 정렬 보강
+                // 팁: OrderBy/OrderByDescending이 꼬이지 않도록 명확하게 람다식을 지정합니다.
+                if (isAscending)
+                {
+                    // 날짜 오름차순 (과거 -> 최근)
+                    carImages = carImages.OrderBy(f => f.WriteTime).ThenBy(f => System.IO.Path.GetFileName(f.FilePath)).ToList();
+                }
+                else
+                {
+                    // 날짜 내림차순 (최근 -> 과거)
+                    carImages = carImages.OrderByDescending(f => f.WriteTime).ThenByDescending(f => System.IO.Path.GetFileName(f.FilePath)).ToList();
+                }
+            }
+            else
+            {
+                // 0열(번호) 헤더를 누른 경우는 정렬하지 않고 빠져나갑니다.
+                return;
             }
 
-            // 정렬이 완료되었으므로 첫 페이지, 첫 프레임으로 리셋
+            // 🌟 정렬 후 무조건 첫 프레임, 첫 페이지로 인덱스를 강제 셋팅합니다.
             currentImageIndex = 0;
             currentPage = 0;
             trbFrame.Value = 0;
 
-            // 화면 갱신
+            // 리스트뷰 화면과 이미지 뷰어를 즉시 새로고침합니다.
             UpdateListPage();
             ShowImage(currentImageIndex);
+        }
+
+        private void txbFileNum_TextChanged(object sender, EventArgs e)
+        {
+
         }
         /*private void ShowImage(int index)
 {

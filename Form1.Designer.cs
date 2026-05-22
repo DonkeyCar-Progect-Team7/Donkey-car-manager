@@ -51,6 +51,7 @@
             timerPlay = new System.Windows.Forms.Timer(components);
             label1 = new Label();
             lstFiles = new ListView();
+            colNum = new ColumnHeader();
             colName = new ColumnHeader();
             colTime = new ColumnHeader();
             ((System.ComponentModel.ISupportInitialize)trbFrame).BeginInit();
@@ -72,9 +73,9 @@
             // btnPageUp
             // 
             btnPageUp.Font = new Font("맑은 고딕", 26.25F, FontStyle.Regular, GraphicsUnit.Point, 129);
-            btnPageUp.Location = new Point(12, 385);
+            btnPageUp.Location = new Point(11, 384);
             btnPageUp.Name = "btnPageUp";
-            btnPageUp.Size = new Size(68, 139);
+            btnPageUp.Size = new Size(68, 193);
             btnPageUp.TabIndex = 3;
             btnPageUp.Text = "▲";
             btnPageUp.UseVisualStyleBackColor = true;
@@ -94,9 +95,9 @@
             // btnPageDown
             // 
             btnPageDown.Font = new Font("맑은 고딕", 26.25F, FontStyle.Regular, GraphicsUnit.Point, 129);
-            btnPageDown.Location = new Point(11, 549);
+            btnPageDown.Location = new Point(11, 603);
             btnPageDown.Name = "btnPageDown";
-            btnPageDown.Size = new Size(68, 139);
+            btnPageDown.Size = new Size(68, 193);
             btnPageDown.TabIndex = 5;
             btnPageDown.Text = "▼";
             btnPageDown.UseVisualStyleBackColor = true;
@@ -176,10 +177,11 @@
             // 
             // txbFileNum
             // 
-            txbFileNum.Location = new Point(12, 525);
+            txbFileNum.Location = new Point(11, 579);
             txbFileNum.Name = "txbFileNum";
             txbFileNum.Size = new Size(68, 23);
             txbFileNum.TabIndex = 4;
+            txbFileNum.TextChanged += txbFileNum_TextChanged;
             txbFileNum.KeyDown += txbFileNum_KeyDown;
             // 
             // btnExtend
@@ -198,6 +200,7 @@
             picCurFrame.Location = new Point(234, 12);
             picCurFrame.Name = "picCurFrame";
             picCurFrame.Size = new Size(668, 317);
+            picCurFrame.SizeMode = PictureBoxSizeMode.Zoom;
             picCurFrame.TabIndex = 0;
             picCurFrame.TabStop = false;
             // 
@@ -267,16 +270,21 @@
             // 
             // lstFiles
             // 
-            lstFiles.Columns.AddRange(new ColumnHeader[] { colName, colTime });
+            lstFiles.Columns.AddRange(new ColumnHeader[] { colNum, colName, colTime });
             lstFiles.FullRowSelect = true;
             lstFiles.Location = new Point(91, 383);
             lstFiles.Name = "lstFiles";
-            lstFiles.Size = new Size(1028, 305);
+            lstFiles.Size = new Size(1028, 413);
             lstFiles.TabIndex = 23;
             lstFiles.UseCompatibleStateImageBehavior = false;
             lstFiles.View = View.Details;
             lstFiles.ColumnClick += lstFiles_ColumnClick;
             lstFiles.SelectedIndexChanged += lstFiles_SelectedIndexChanged;
+            // 
+            // colNum
+            // 
+            colNum.Text = "번호";
+            colNum.Width = 100;
             // 
             // colName
             // 
@@ -292,7 +300,7 @@
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(1584, 704);
+            ClientSize = new Size(1584, 808);
             Controls.Add(lstFiles);
             Controls.Add(label1);
             Controls.Add(txbFPS);
@@ -349,5 +357,6 @@
         private ListView lstFiles;
         private ColumnHeader colName;
         private ColumnHeader colTime;
+        private ColumnHeader colNum;
     }
 }
