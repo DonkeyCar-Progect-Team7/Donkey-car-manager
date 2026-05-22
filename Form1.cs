@@ -4,8 +4,18 @@ namespace Donkey_car_manager
 {
     public partial class Form1 : Form
     {
+        public class CarFileInfo
+        {
+            public string FilePath { get; set; }
+            public DateTime WriteTime { get; set; }
+        }
+        //  이 코드를 새로 넣어줍니다.
+        private List<CarFileInfo> carImages = new List<CarFileInfo>();
+
+        // 정렬 상태(오름차순/내림차순)를 기억할 패스포트 변수도 같이 추가해 줍니다.
+        private bool isAscending = true;
         // 1. 기존 이미지 및 페이징 변수들
-        private List<string> imageFiles = new List<string>();
+        //private List<string> carImages = new List<string>();
         private int currentImageIndex = 0;
         private int pageSize = 20;
         private int currentPage = 0;
@@ -47,48 +57,54 @@ namespace Donkey_car_manager
 
         private void btnFileOpen_Click(object sender, EventArgs e)
         {
+            // 혹시 자동 재생(넘기기) 중이었다면 안전하게 멈추기
+            if (isPlaying) StopAutoPlay();
+
             using (FolderBrowserDialog fbd = new FolderBrowserDialog())
             {
                 if (fbd.ShowDialog() == DialogResult.OK)
                 {
-                    string selectedFolder = fbd.SelectedPath;
+                    // 1. 선택한 폴더에서 JPG 이미지 파일 목록을 배열로 가져옵니다.
+                    string[] files = System.IO.Directory.GetFiles(fbd.SelectedPath, "*.jpg");
 
-                    imageFiles = System.IO.Directory.GetFiles(selectedFolder, "*.*")
-                        .Where(file => file.ToLower().EndsWith(".jpg") ||
-                                       file.ToLower().EndsWith(".png") ||
-                                       file.ToLower().EndsWith(".jpeg") ||
-                                       file.ToLower().EndsWith(".bmp"))
-                        .ToList();
+                    // 2. 아까 만든 새 바구니(carImages)를 깨끗하게 비워줍니다.
+                    carImages.Clear();
 
-                    if (imageFiles.Count > 0)
+                    // 3. 🌟 핵심: 파일을 로드하는 이 시점에 '딱 한 번만' 디스크에서 수정 시간을 읽어와 저장합니다.
+                    // 이렇게 메모리에 미리 다 올려두어야 나중에 정렬할 때 렉이 전혀 안 걸립니다.
+                    foreach (string file in files)
                     {
-                        // 트랙바 초기화
-                        trbFrame.Minimum = 0;
-                        trbFrame.Maximum = imageFiles.Count - 1;
-                        trbFrame.Value = 0;
-
-                        // --- 페이징 계산 추가 ---
-                        currentPage = 0;
-                        // 전체 페이지 수 = 올림(전체 파일 수 / 페이지당 개수)
-                        totalPages = (int)Math.Ceiling((double)imageFiles.Count / pageSize);
-
-                        currentImageIndex = 0;
-
-                        // 리스트박스 및 이미지 업데이트 메서드 호출
-                        UpdateListPage();
-                        ShowImage(currentImageIndex);
+                        carImages.Add(new CarFileInfo
+                        {
+                            FilePath = file,
+                            WriteTime = System.IO.File.GetLastWriteTime(file)
+                        });
                     }
-                    else
-                    {
-                        MessageBox.Show("이미지 파일이 없습니다.");
-                    }
+
+                    // 4. 처음 폴더를 열었을 때는 파일 이름순(오름차순)으로 기본 정렬해 줍니다.
+                    carImages = carImages.OrderBy(f => System.IO.Path.GetFileName(f.FilePath)).ToList();
+
+                    // 5. 페이징 및 인덱스 변수 초기화 계산
+                    totalPages = (int)Math.Ceiling((double)carImages.Count / pageSize);
+                    currentImageIndex = 0;
+                    currentPage = 0;
+
+                    // 6. 트랙바(슬라이더) 범위 지정 (데이터가 없으면 0, 있으면 개수 - 1)
+                    trbFrame.Maximum = Math.Max(0, carImages.Count - 1);
+                    trbFrame.Value = 0;
+
+                    // 7. 새로 바뀐 데이터를 화면(ListView와 PictureBox)에 그려줍니다.
+                    UpdateListPage();
+                    ShowImage(currentImageIndex);
+
+                    MessageBox.Show($"총 {carImages.Count}개의 프레임 이미지를 성공적으로 로드했습니다.", "완료");
                 }
             }
         }
 
         private void trbFrame_Scroll(object sender, EventArgs e)
         {
-            if (imageFiles != null && imageFiles.Count > 0)
+            if (carImages != null && carImages.Count > 0)
             {
                 // 트랙바의 현재 위치 값을 인덱스로 설정
                 currentImageIndex = trbFrame.Value;
@@ -97,23 +113,14 @@ namespace Donkey_car_manager
         }
         private void ShowImage(int index)
         {
-            if (index < 0 || index >= imageFiles.Count) return;
+            // 인덱스가 범위를 벗어나면 아무것도 하지 않음
+            if (index < 0 || index >= carImages.Count) return;
 
-            // 픽쳐박스 크기에 맞게 이미지 비율을 유지하며 보여주도록 설정 (디자인 창 속성에서 바꿔도 됩니다)
-            picCurFrame.SizeMode = PictureBoxSizeMode.Zoom;
-
-            // 기존에 메모리에 올라간 이미지가 있다면 해제 (메모리 누수 방지)
-            if (picCurFrame.Image != null)
+            // 🌟 핵심: carImages[index] 대신 새 바구니인 carImages[index].FilePath를 사용합니다.
+            using (System.IO.FileStream fs = new System.IO.FileStream(carImages[index].FilePath, System.IO.FileMode.Open, System.IO.FileAccess.Read))
             {
-                picCurFrame.Image.Dispose();
+                picCurFrame.Image = Image.FromStream(fs);
             }
-
-            // 새로운 이미지 로드
-            picCurFrame.Image = Image.FromFile(imageFiles[index]);
-
-            // (선택 사항) 화면 좌측 상단 라벨에 프레임 번호나 파일명을 띄워주면 좋습니다.
-            lblFrameNum.Text = $"프레임 번호 : {index + 1} / {imageFiles.Count}";
-
         }
 
         private void trbFrame_MouseDown(object sender, MouseEventArgs e)
@@ -144,27 +151,36 @@ namespace Donkey_car_manager
         }
         private void UpdateListPage()
         {
-            if (imageFiles == null || imageFiles.Count == 0) return;
+            if (carImages == null) return;
 
-            // 리스트박스 비우기
+            // 1. 기존 리스트뷰에 있던 아이템들을 싹 비워줍니다.
             lstFiles.Items.Clear();
 
-            // 현재 페이지의 시작 인덱스와 끝 인덱스 계산
+            // 2. 현재 페이지의 시작 인덱스와 끝 인덱스 계산
             int startIndex = currentPage * pageSize;
-            int endIndex = Math.Min(startIndex + pageSize, imageFiles.Count);
+            int endIndex = Math.Min(startIndex + pageSize, carImages.Count);
 
-            // 해당 범위의 파일명을 리스트박스에 추가
+            // 3. 현재 페이지에 해당하는 파일들만 리스트뷰에 탐색기 형태로 넣어줍니다.
             for (int i = startIndex; i < endIndex; i++)
             {
-                string fileName = System.IO.Path.GetFileName(imageFiles[i]);
-                lstFiles.Items.Add($"[{i + 1}] {fileName}");
+                string filePath = carImages[i].FilePath;
+                string fileName = System.IO.Path.GetFileName(filePath);
+
+                // 메모리에 미리 저장해둔 수정 시간을 문자열로 예쁘게 포맷팅
+                string fileTime = carImages[i].WriteTime.ToString("yyyy-MM-dd HH:mm:ss");
+
+                // 리스트뷰의 행(Row) 생성: 첫 번째 열에는 파일명
+                ListViewItem item = new ListViewItem(fileName);
+                // 두 번째 열에는 수정 시간 추가
+                item.SubItems.Add(fileTime);
+
+                // 리스트뷰에 최종 추가
+                lstFiles.Items.Add(item);
             }
 
-            // 🌟 [여기에 추가] 라벨에 현재 페이지와 전체 페이지 정보를 띄워줍니다.
-            // 인덱스는 0부터 시작하므로 화면에 보여줄 때는 currentPage + 1을 해줍니다.
+            // 4. 페이지 표시 라벨 갱신
             lblCurFilePage.Text = $"{currentPage + 1} / {totalPages}";
         }
-
         private void btnPageUp_Click(object sender, EventArgs e)
         {
             if (currentPage > 0)
@@ -203,7 +219,7 @@ namespace Donkey_car_manager
                 int targetIndex = targetFrame - 1;
 
                 // 범위 검사
-                if (targetIndex >= 0 && targetIndex < imageFiles.Count)
+                if (targetIndex >= 0 && targetIndex < carImages.Count)
                 {
                     currentImageIndex = targetIndex;
                     trbFrame.Value = currentImageIndex;
@@ -216,7 +232,7 @@ namespace Donkey_car_manager
                 }
                 else
                 {
-                    MessageBox.Show($"1부터 {imageFiles.Count} 사이의 숫자를 입력해주세요.", "알림");
+                    MessageBox.Show($"1부터 {carImages.Count} 사이의 숫자를 입력해주세요.", "알림");
                 }
             }
             else
@@ -226,17 +242,20 @@ namespace Donkey_car_manager
         }
         private void lstFiles_SelectedIndexChanged(object sender, EventArgs e)
         {
-            if (lstFiles.SelectedIndex != -1)
-            {
-                // 현재 페이지의 시작 인덱스 + 리스트박스에서 선택된 행 번호 = 실제 이미지 인덱스
-                int actualIndex = (currentPage * pageSize) + lstFiles.SelectedIndex;
+            // 리스트뷰에서 아무것도 선택되지 않았다면 안전하게 리턴
+            if (lstFiles.SelectedIndices.Count == 0) return;
 
-                if (actualIndex >= 0 && actualIndex < imageFiles.Count)
-                {
-                    currentImageIndex = actualIndex;
-                    trbFrame.Value = currentImageIndex;
-                    ShowImage(currentImageIndex);
-                }
+            // 선택된 첫 번째 행의 인덱스를 가져옴
+            int listBoxIndex = lstFiles.SelectedIndices[0];
+
+            // 현재 페이지를 고려한 실제 이미지 위치 계산
+            int actualIndex = (currentPage * pageSize) + listBoxIndex;
+
+            if (actualIndex >= 0 && actualIndex < carImages.Count)
+            {
+                currentImageIndex = actualIndex;
+                trbFrame.Value = currentImageIndex;
+                ShowImage(currentImageIndex);
             }
         }
 
@@ -282,7 +301,7 @@ namespace Donkey_car_manager
                         UpdateListPage();
 
                         // 페이지가 바뀔 때, 해당 페이지의 첫 번째 이미지로 자동 이동 (선택 사항)
-                        if (imageFiles != null && imageFiles.Count > 0)
+                        if (carImages != null && carImages.Count > 0)
                         {
                             currentImageIndex = currentPage * pageSize;
                             trbFrame.Value = currentImageIndex;
@@ -304,7 +323,7 @@ namespace Donkey_car_manager
         private void btnFileDelete_Click(object sender, EventArgs e)
         {
             // 삭제할 파일이 있는지 먼저 확인
-            if (imageFiles == null || imageFiles.Count == 0 || currentImageIndex < 0 || currentImageIndex >= imageFiles.Count)
+            if (carImages == null || carImages.Count == 0 || currentImageIndex < 0 || currentImageIndex >= carImages.Count)
             {
                 MessageBox.Show("삭제할 파일이 없습니다.", "알림", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
@@ -330,17 +349,17 @@ namespace Donkey_car_manager
                     GC.WaitForPendingFinalizers();
 
                     // 2. 실제 컴퓨터 디스크에서 파일 삭제
-                    string fileToDelete = imageFiles[currentImageIndex];
+                    string fileToDelete = carImages[currentImageIndex].FilePath;
                     if (System.IO.File.Exists(fileToDelete))
                     {
                         System.IO.File.Delete(fileToDelete);
                     }
 
                     // 3. 프로그램 내부 이미지 데이터 리스트에서 해당 경로 삭제
-                    imageFiles.RemoveAt(currentImageIndex);
+                    carImages.RemoveAt(currentImageIndex);
 
                     // 4. 파일을 지운 후 데이터 수에 따른 UI 예외 처리
-                    if (imageFiles.Count == 0)
+                    if (carImages.Count == 0)
                     {
                         // 모든 파일이 다 지워졌을 때 초기화 상태로 만듦
                         trbFrame.Maximum = 0;
@@ -356,13 +375,13 @@ namespace Donkey_car_manager
                     else
                     {
                         // 리스트의 맨 마지막 프레임을 지운 경우라면 인덱스를 하나 앞으로 당겨줍니다.
-                        if (currentImageIndex >= imageFiles.Count)
+                        if (currentImageIndex >= carImages.Count)
                         {
-                            currentImageIndex = imageFiles.Count - 1;
+                            currentImageIndex = carImages.Count - 1;
                         }
 
                         // 전체 페이지 수 재계산
-                        totalPages = (int)Math.Ceiling((double)imageFiles.Count / pageSize);
+                        totalPages = (int)Math.Ceiling((double)carImages.Count / pageSize);
 
                         // 프레임이 줄어들면서 현재 페이지 범위를 벗어났다면 현재 페이지 번호를 조절합니다.
                         if (currentPage >= totalPages)
@@ -371,7 +390,7 @@ namespace Donkey_car_manager
                         }
 
                         // 트랙바 범위 및 값 최신화
-                        trbFrame.Maximum = imageFiles.Count - 1;
+                        trbFrame.Maximum = carImages.Count - 1;
                         trbFrame.Value = currentImageIndex;
 
                         // 리스트박스, 라벨, 픽쳐박스 화면 갱신
@@ -392,7 +411,7 @@ namespace Donkey_car_manager
 
         private void btnFileMultiDel_Click(object sender, EventArgs e)
         {
-            // 1. 리스트박스에서 선택된 항목이 하나도 없는지 검사
+            // 1. 리스트뷰에서 선택된 항목이 없으면 리턴
             if (lstFiles.SelectedIndices.Count == 0)
             {
                 MessageBox.Show("다중 삭제할 파일을 리스트에서 선택해주세요.\n(Ctrl 이나 Shift를 누른 채 클릭하면 여러 개 선택이 가능합니다.)",
@@ -402,7 +421,6 @@ namespace Donkey_car_manager
 
             int deleteCount = lstFiles.SelectedIndices.Count;
 
-            // 사용자에게 진짜 삭제할 것인지 최종 확인 (안전장치)
             DialogResult result = MessageBox.Show($"리스트에서 선택한 {deleteCount}개의 프레임 이미지를 정말로 디스크에서 영구 삭제하시겠습니까?",
                                                   "다중 삭제 확인", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
 
@@ -410,47 +428,44 @@ namespace Donkey_car_manager
             {
                 try
                 {
-                    // 2. 현재 픽쳐박스에 띄워진 이미지 리소스 해제 (파일 잠금 현상 방지)
+                    // 현재 화면에 띄워진 이미지 프로세스 해제 (파일 삭제를 위해 메모리 방출)
                     if (picCurFrame.Image != null)
                     {
                         picCurFrame.Image.Dispose();
                         picCurFrame.Image = null;
                     }
 
-                    // 가비지 컬렉터를 구동하여 파일 스트림 리소스를 확실하게 정리합니다.
                     GC.Collect();
                     GC.WaitForPendingFinalizers();
 
-                    // 3. 🌟 핵심: 선택된 리스트박스 행 번호들을 '역순(큰 숫자부터)'으로 정렬하여 추출
-                    // 인덱스 뒤에서부터 지워야 리스트가 앞으로 당겨지면서 데이터가 꼬이는 것을 막을 수 있습니다.
+                    // 2. 🌟 핵심: 리스트뷰의 선택된 인덱스들을 역순으로 정렬하여 리스트로 가져옵니다.
+                    // (앞에서부터 지우면 인덱스가 당겨져서 엉뚱한 파일이 지워지기 때문에 뒤에서부터 지워야 합니다)
                     List<int> selectedIndices = lstFiles.SelectedIndices.Cast<int>().OrderByDescending(i => i).ToList();
 
                     foreach (int listBoxIndex in selectedIndices)
                     {
-                        // (현재 페이지 시작점) + (리스트박스 안에서의 선택 위치) = 실제 imageFiles 리스트의 인덱스
                         int actualIndex = (currentPage * pageSize) + listBoxIndex;
 
-                        if (actualIndex >= 0 && actualIndex < imageFiles.Count)
+                        if (actualIndex >= 0 && actualIndex < carImages.Count)
                         {
-                            string fileToDelete = imageFiles[actualIndex];
+                            string fileToDelete = carImages[actualIndex].FilePath;
 
-                            // 실제 컴퓨터 디스크(HDD/SSD)에서 파일 삭제
+                            // 디스크에서 실제 파일 삭제
                             if (System.IO.File.Exists(fileToDelete))
                             {
                                 System.IO.File.Delete(fileToDelete);
                             }
 
-                            // 프로그램 내부 데이터 리스트에서 경로 제거
-                            imageFiles.RemoveAt(actualIndex);
+                            // 메모리 바구니에서도 삭제
+                            carImages.RemoveAt(actualIndex);
                         }
                     }
 
                     MessageBox.Show($"{deleteCount}개의 파일 삭제를 완료했습니다.", "완료", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
-                    // 4. 데이터가 삭제된 후 남은 수에 따라 UI 최신화
-                    if (imageFiles.Count == 0)
+                    // 3. UI 데이터 갱신 로직
+                    if (carImages.Count == 0)
                     {
-                        // 모든 파일이 삭제되어 데이터가 아예 없을 때 초기화
                         trbFrame.Maximum = 0;
                         trbFrame.Value = 0;
                         currentPage = 0;
@@ -462,26 +477,21 @@ namespace Donkey_car_manager
                     }
                     else
                     {
-                        // 전체 페이지 수 다시 계산
-                        totalPages = (int)Math.Ceiling((double)imageFiles.Count / pageSize);
+                        totalPages = (int)Math.Ceiling((double)carImages.Count / pageSize);
 
-                        // 프레임 대량 삭제로 인해 현재 페이지 번호가 최대 페이지를 넘어가면 마지막 페이지로 고정
                         if (currentPage >= totalPages)
                         {
                             currentPage = totalPages - 1;
                         }
 
-                        // 현재 보고 있던 이미지 포인터(인덱스)가 삭제 후의 리스트 범위를 벗어나지 않도록 조정
-                        if (currentImageIndex >= imageFiles.Count)
+                        if (currentImageIndex >= carImages.Count)
                         {
-                            currentImageIndex = imageFiles.Count - 1;
+                            currentImageIndex = carImages.Count - 1;
                         }
 
-                        // 트랙바 맥스값 및 슬라이더 위치 최신화
-                        trbFrame.Maximum = imageFiles.Count - 1;
+                        trbFrame.Maximum = carImages.Count - 1;
                         trbFrame.Value = currentImageIndex;
 
-                        // 화면 UI(리스트박스 목록, 라벨, 이미지 뷰어) 리프레시
                         UpdateListPage();
                         ShowImage(currentImageIndex);
                     }
@@ -491,7 +501,6 @@ namespace Donkey_car_manager
                     MessageBox.Show($"파일 다중 삭제 작업 중 오류가 발생했습니다:\n{ex.Message}", "오류",
                                     MessageBoxButtons.OK, MessageBoxIcon.Error);
 
-                    // 오류가 발생하더라도 현재 상태로 화면을 복구시킵니다.
                     UpdateListPage();
                     ShowImage(currentImageIndex);
                 }
@@ -522,7 +531,7 @@ namespace Donkey_car_manager
             int nextIndex = currentImageIndex + 1;
 
             // 만약 마지막 프레임에 도달했다면 자동으로 정지
-            if (nextIndex >= imageFiles.Count)
+            if (nextIndex >= carImages.Count)
             {
                 StopAutoPlay();
                 MessageBox.Show("마지막 프레임에 도달하여 자동 넘기기를 종료합니다.", "알림");
@@ -540,7 +549,7 @@ namespace Donkey_car_manager
         private void btnAutoPic_Click(object sender, EventArgs e)
         {
             // 1. 재생할 이미지 파일이 없는 경우 예외 처리
-            if (imageFiles == null || imageFiles.Count == 0)
+            if (carImages == null || carImages.Count == 0)
             {
                 MessageBox.Show("이미지 폴더를 먼저 열어주세요.", "알림");
                 return;
@@ -571,6 +580,41 @@ namespace Donkey_car_manager
                 // 5. 이미 재생 중일 때 버튼을 누르면 정지
                 StopAutoPlay();
             }
+        }
+
+        private void lstFiles_ColumnClick(object sender, ColumnClickEventArgs e)
+        {
+            // 데이터가 없으면 정렬하지 않음
+            if (carImages == null || carImages.Count == 0) return;
+            if (isPlaying) StopAutoPlay(); // 자동 재생 중이면 정지
+
+            // 클릭할 때마다 정렬 방향을 반대로 토글 (오름차순 <-> 내림차순)
+            isAscending = !isAscending;
+
+            // e.Column은 클릭한 컬럼의 번호입니다 (0: 파일명, 1: 수정 시간)
+            if (e.Column == 0)
+            {
+                // 1열(파일명) 헤더 클릭 시 메모리 상에서 초고속 정렬
+                carImages = isAscending
+                    ? carImages.OrderBy(f => System.IO.Path.GetFileName(f.FilePath)).ToList()
+                    : carImages.OrderByDescending(f => System.IO.Path.GetFileName(f.FilePath)).ToList();
+            }
+            else if (e.Column == 1)
+            {
+                // 2열(수정 시간) 헤더 클릭 시 메모리 상에서 초고속 정렬 (디스크 접근이 없어 렉이 없습니다)
+                carImages = isAscending
+                    ? carImages.OrderBy(f => f.WriteTime).ToList()
+                    : carImages.OrderByDescending(f => f.WriteTime).ToList();
+            }
+
+            // 정렬이 완료되었으므로 첫 페이지, 첫 프레임으로 리셋
+            currentImageIndex = 0;
+            currentPage = 0;
+            trbFrame.Value = 0;
+
+            // 화면 갱신
+            UpdateListPage();
+            ShowImage(currentImageIndex);
         }
         /*private void ShowImage(int index)
 {

@@ -32,7 +32,6 @@
             trbFrame = new TrackBar();
             btnPageUp = new Button();
             btnFileOpen = new Button();
-            lstFiles = new ListBox();
             btnPageDown = new Button();
             lblTitle = new Label();
             lblAcceleration = new Label();
@@ -51,6 +50,9 @@
             txbFPS = new TextBox();
             timerPlay = new System.Windows.Forms.Timer(components);
             label1 = new Label();
+            lstFiles = new ListView();
+            colName = new ColumnHeader();
+            colTime = new ColumnHeader();
             ((System.ComponentModel.ISupportInitialize)trbFrame).BeginInit();
             ((System.ComponentModel.ISupportInitialize)picCurFrame).BeginInit();
             ((System.ComponentModel.ISupportInitialize)dgvDebug).BeginInit();
@@ -88,15 +90,6 @@
             btnFileOpen.Text = "파일 열기";
             btnFileOpen.UseVisualStyleBackColor = true;
             btnFileOpen.Click += btnFileOpen_Click;
-            // 
-            // lstFiles
-            // 
-            lstFiles.FormattingEnabled = true;
-            lstFiles.Location = new Point(86, 385);
-            lstFiles.Name = "lstFiles";
-            lstFiles.SelectionMode = SelectionMode.MultiExtended;
-            lstFiles.Size = new Size(1033, 304);
-            lstFiles.TabIndex = 6;
             // 
             // btnPageDown
             // 
@@ -272,11 +265,35 @@
             label1.TabIndex = 22;
             label1.Text = "FPS";
             // 
+            // lstFiles
+            // 
+            lstFiles.Columns.AddRange(new ColumnHeader[] { colName, colTime });
+            lstFiles.FullRowSelect = true;
+            lstFiles.Location = new Point(91, 383);
+            lstFiles.Name = "lstFiles";
+            lstFiles.Size = new Size(1028, 305);
+            lstFiles.TabIndex = 23;
+            lstFiles.UseCompatibleStateImageBehavior = false;
+            lstFiles.View = View.Details;
+            lstFiles.ColumnClick += lstFiles_ColumnClick;
+            lstFiles.SelectedIndexChanged += lstFiles_SelectedIndexChanged;
+            // 
+            // colName
+            // 
+            colName.Text = "파일명";
+            colName.Width = 200;
+            // 
+            // colTime
+            // 
+            colTime.Text = "수정한 날짜";
+            colTime.Width = 300;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(1584, 704);
+            Controls.Add(lstFiles);
             Controls.Add(label1);
             Controls.Add(txbFPS);
             Controls.Add(btnAutoPic);
@@ -294,7 +311,6 @@
             Controls.Add(txbFrame);
             Controls.Add(btnFileDelete);
             Controls.Add(btnPageDown);
-            Controls.Add(lstFiles);
             Controls.Add(btnFileOpen);
             Controls.Add(btnPageUp);
             Controls.Add(trbFrame);
@@ -312,7 +328,6 @@
         private TrackBar trbFrame;
         private Button btnPageUp;
         private Button btnFileOpen;
-        private ListBox lstFiles;
         private Button btnPageDown;
         private Label lblTitle;
         private Label lblAcceleration;
@@ -331,5 +346,8 @@
         private TextBox txbFPS;
         private System.Windows.Forms.Timer timerPlay;
         private Label label1;
+        private ListView lstFiles;
+        private ColumnHeader colName;
+        private ColumnHeader colTime;
     }
 }
