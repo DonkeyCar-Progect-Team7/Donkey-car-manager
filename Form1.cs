@@ -123,11 +123,13 @@ namespace Donkey_car_manager
             // 인덱스가 범위를 벗어나면 아무것도 하지 않음
             if (index < 0 || index >= carImages.Count) return;
 
-            // 🌟 핵심: carImages[index] 대신 새 바구니인 carImages[index].FilePath를 사용합니다.
             using (System.IO.FileStream fs = new System.IO.FileStream(carImages[index].FilePath, System.IO.FileMode.Open, System.IO.FileAccess.Read))
             {
                 picCurFrame.Image = Image.FromStream(fs);
             }
+
+            // 🌟 [추가] 트랙바나 자동 재생 시에도 상단 라벨이 "프레임 번호 : X / Y" 형태로 실시간 동기화되도록 설정
+            lblFrameNum.Text = $"프레임 번호 : {index + 1} / {carImages.Count}";
         }
 
         private void trbFrame_MouseDown(object sender, MouseEventArgs e)
@@ -247,7 +249,7 @@ namespace Donkey_car_manager
                 MessageBox.Show("올바른 숫자를 입력해주세요.", "알림");
             }
         }
-        private void lstFiles_SelectedIndexChanged(object sender, EventArgs e)
+        /*private void lstFiles_SelectedIndexChanged(object sender, EventArgs e)
         {
             // 리스트뷰에서 아무것도 선택되지 않았다면 안전하게 리턴
             if (lstFiles.SelectedIndices.Count == 0) return;
@@ -264,7 +266,7 @@ namespace Donkey_car_manager
                 trbFrame.Value = currentImageIndex;
                 ShowImage(currentImageIndex);
             }
-        }
+        }*/
 
         private void txbFrame_KeyPress(object sender, KeyPressEventArgs e)
         {
@@ -674,20 +676,73 @@ namespace Donkey_car_manager
         {
 
         }
-        /*private void ShowImage(int index)
-{
-// ... 기존 이미지 출력 로직 ...
 
-// 우측 디버그 표에 현재 프레임 데이터 표시하기
-// (파일명에서 속도와 조향각을 파싱해왔다고 가정)
-double currentSpeed = 0.65;
-double currentAngle = -0.15;
+        // 1. 리스트뷰에서 항목을 마우스나 방향키로 클릭할 때 실행되는 이벤트
+        private void lstFiles_ItemSelectionChanged(object sender, ListViewItemSelectionChangedEventArgs e)
+        {
+            if (e.IsSelected)
+            {
+                // 현재 페이지와 내부 인덱스를 조합해 전체 기준의 실제 인덱스 계산
+                int actualIndex = (currentPage * pageSize) + e.ItemIndex;
 
-// 표에 행(Row) 추가해서 실시간 로그 쌓기
-dgvDebug.Rows.Add(index + 1, currentSpeed, currentAngle);
+                if (carImages != null && actualIndex >= 0 && actualIndex < carImages.Count)
+                {
+                    currentImageIndex = actualIndex;
+                    trbFrame.Value = currentImageIndex;
+                    ShowImage(currentImageIndex);
 
-// 스크롤을 맨 아래로 내려서 실시간 디버깅 느낌 주기
-dgvDebug.FirstDisplayedScrollingRowIndex = dgvDebug.RowCount - 1;
-}*/
+                    // 🌟 클릭한 항목의 정보를 기반으로 UI 전체 갱신 호출
+                    UpdatePageUI(e.ItemIndex);
+                }
+            }
+        }
+
+        // 2. 디자이너 매핑 안정성을 위한 서브 이벤트
+        private void lstFiles_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (lstFiles.SelectedIndices.Count > 0)
+            {
+                int localIndex = lstFiles.SelectedIndices[0];
+                int actualIndex = (currentPage * pageSize) + localIndex;
+
+                if (carImages != null && actualIndex >= 0 && actualIndex < carImages.Count)
+                {
+                    currentImageIndex = actualIndex;
+                    trbFrame.Value = currentImageIndex;
+                    ShowImage(currentImageIndex);
+
+                    // 🌟 UI 전체 갱신 호출
+                    UpdatePageUI(localIndex);
+                }
+            }
+        }
+
+        // 3. 모든 UI 요소(페이지 정보, 상단 프레임 번호)를 정확하게 동기화하는 핵심 메서드
+        // 모든 UI 요소(상단 프레임 번호 라벨, 우측 페이지 텍스트박스, 좌측 페이지 라벨)를 동기화하는 메서드
+        private void UpdatePageUI(int pageListItemIndex)
+        {
+            if (carImages == null || carImages.Count == 0) return;
+
+            // 1. 전체 이미지 기준의 실제 현재 프레임 번호 계산 (1부터 시작하므로 +1)
+            int globalFileNumber = (currentPage * pageSize) + pageListItemIndex + 1;
+
+            // 2. 전체 로드된 총 이미지(프레임) 개수
+            int totalFramesCount = carImages.Count;
+
+            // 🌟 [상단 라벨] 원하시는 포맷 "프레임 번호 : 현재 프레임 / 전체 프레임"으로 완벽 매핑
+            lblFrameNum.Text = $"프레임 번호 : {globalFileNumber} / {totalFramesCount}";
+
+            // 3. [우측 텍스트박스] 유저가 페이지 단위로 건너뛸 수 있도록 현재 페이지 번호 표시
+            int displayPage = currentPage + 1;
+            txbFileNum.Text = displayPage.ToString();
+
+            // 4. [좌측 라벨] 현재 페이지 / 전체 페이지 형식 유지
+            lblCurFilePage.Text = $"{displayPage} / {totalPages}";
+        }
+
+        private void picCurFrame_Click(object sender, EventArgs e)
+        {
+
+        }
     }
 }

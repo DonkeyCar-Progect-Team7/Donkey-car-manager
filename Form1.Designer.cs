@@ -30,9 +30,7 @@
         {
             components = new System.ComponentModel.Container();
             trbFrame = new TrackBar();
-            btnPageUp = new Button();
             btnFileOpen = new Button();
-            btnPageDown = new Button();
             lblTitle = new Label();
             lblAcceleration = new Label();
             lblSteeringAngle = new Label();
@@ -70,17 +68,6 @@
             trbFrame.Scroll += trbFrame_Scroll;
             trbFrame.MouseDown += trbFrame_MouseDown;
             // 
-            // btnPageUp
-            // 
-            btnPageUp.Font = new Font("맑은 고딕", 26.25F, FontStyle.Regular, GraphicsUnit.Point, 129);
-            btnPageUp.Location = new Point(11, 384);
-            btnPageUp.Name = "btnPageUp";
-            btnPageUp.Size = new Size(68, 193);
-            btnPageUp.TabIndex = 3;
-            btnPageUp.Text = "▲";
-            btnPageUp.UseVisualStyleBackColor = true;
-            btnPageUp.Click += btnPageUp_Click;
-            // 
             // btnFileOpen
             // 
             btnFileOpen.Font = new Font("맑은 고딕", 12F);
@@ -91,17 +78,6 @@
             btnFileOpen.Text = "파일 열기";
             btnFileOpen.UseVisualStyleBackColor = true;
             btnFileOpen.Click += btnFileOpen_Click;
-            // 
-            // btnPageDown
-            // 
-            btnPageDown.Font = new Font("맑은 고딕", 26.25F, FontStyle.Regular, GraphicsUnit.Point, 129);
-            btnPageDown.Location = new Point(11, 603);
-            btnPageDown.Name = "btnPageDown";
-            btnPageDown.Size = new Size(68, 193);
-            btnPageDown.TabIndex = 5;
-            btnPageDown.Text = "▼";
-            btnPageDown.UseVisualStyleBackColor = true;
-            btnPageDown.Click += btnPageDown_Click;
             // 
             // lblTitle
             // 
@@ -169,17 +145,19 @@
             // lblCurFilePage
             // 
             lblCurFilePage.AutoSize = true;
-            lblCurFilePage.Location = new Point(86, 365);
+            lblCurFilePage.Font = new Font("맑은 고딕", 14.25F, FontStyle.Regular, GraphicsUnit.Point, 129);
+            lblCurFilePage.Location = new Point(11, 346);
             lblCurFilePage.Name = "lblCurFilePage";
-            lblCurFilePage.Size = new Size(78, 15);
+            lblCurFilePage.Size = new Size(114, 25);
             lblCurFilePage.TabIndex = 15;
-            lblCurFilePage.Text = "현재 페이지 :";
+            lblCurFilePage.Text = "현재 페이지";
             // 
             // txbFileNum
             // 
-            txbFileNum.Location = new Point(11, 579);
+            txbFileNum.Font = new Font("맑은 고딕", 14.25F, FontStyle.Regular, GraphicsUnit.Point, 129);
+            txbFileNum.Location = new Point(133, 343);
             txbFileNum.Name = "txbFileNum";
-            txbFileNum.Size = new Size(68, 23);
+            txbFileNum.Size = new Size(90, 33);
             txbFileNum.TabIndex = 4;
             txbFileNum.TextChanged += txbFileNum_TextChanged;
             txbFileNum.KeyDown += txbFileNum_KeyDown;
@@ -203,6 +181,7 @@
             picCurFrame.SizeMode = PictureBoxSizeMode.Zoom;
             picCurFrame.TabIndex = 0;
             picCurFrame.TabStop = false;
+            picCurFrame.Click += picCurFrame_Click;
             // 
             // lblFrameNum
             // 
@@ -230,15 +209,15 @@
             // dgvDebug
             // 
             dgvDebug.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            dgvDebug.Location = new Point(1132, 12);
+            dgvDebug.Location = new Point(621, 386);
             dgvDebug.Name = "dgvDebug";
-            dgvDebug.Size = new Size(440, 237);
+            dgvDebug.Size = new Size(498, 413);
             dgvDebug.TabIndex = 19;
             // 
             // btnAutoPic
             // 
             btnAutoPic.Font = new Font("맑은 고딕", 12F);
-            btnAutoPic.Location = new Point(12, 311);
+            btnAutoPic.Location = new Point(12, 281);
             btnAutoPic.Name = "btnAutoPic";
             btnAutoPic.Size = new Size(211, 51);
             btnAutoPic.TabIndex = 2;
@@ -249,7 +228,7 @@
             // txbFPS
             // 
             txbFPS.Font = new Font("맑은 고딕", 14.25F, FontStyle.Regular, GraphicsUnit.Point, 129);
-            txbFPS.Location = new Point(59, 272);
+            txbFPS.Location = new Point(59, 242);
             txbFPS.Name = "txbFPS";
             txbFPS.Size = new Size(164, 33);
             txbFPS.TabIndex = 1;
@@ -262,7 +241,7 @@
             // 
             label1.AutoSize = true;
             label1.Font = new Font("맑은 고딕", 14.25F);
-            label1.Location = new Point(11, 275);
+            label1.Location = new Point(11, 245);
             label1.Name = "label1";
             label1.Size = new Size(42, 25);
             label1.TabIndex = 22;
@@ -272,13 +251,14 @@
             // 
             lstFiles.Columns.AddRange(new ColumnHeader[] { colNum, colName, colTime });
             lstFiles.FullRowSelect = true;
-            lstFiles.Location = new Point(91, 383);
+            lstFiles.Location = new Point(12, 386);
             lstFiles.Name = "lstFiles";
-            lstFiles.Size = new Size(1028, 413);
+            lstFiles.Size = new Size(603, 413);
             lstFiles.TabIndex = 23;
             lstFiles.UseCompatibleStateImageBehavior = false;
             lstFiles.View = View.Details;
             lstFiles.ColumnClick += lstFiles_ColumnClick;
+            lstFiles.ItemSelectionChanged += lstFiles_ItemSelectionChanged;
             lstFiles.SelectedIndexChanged += lstFiles_SelectedIndexChanged;
             // 
             // colNum
@@ -300,7 +280,7 @@
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(1584, 808);
+            ClientSize = new Size(1129, 808);
             Controls.Add(lstFiles);
             Controls.Add(label1);
             Controls.Add(txbFPS);
@@ -318,9 +298,7 @@
             Controls.Add(btnFrameMove);
             Controls.Add(txbFrame);
             Controls.Add(btnFileDelete);
-            Controls.Add(btnPageDown);
             Controls.Add(btnFileOpen);
-            Controls.Add(btnPageUp);
             Controls.Add(trbFrame);
             Name = "Form1";
             Text = "Form1";
@@ -334,9 +312,7 @@
 
         #endregion
         private TrackBar trbFrame;
-        private Button btnPageUp;
         private Button btnFileOpen;
-        private Button btnPageDown;
         private Label lblTitle;
         private Label lblAcceleration;
         private Label lblSteeringAngle;
