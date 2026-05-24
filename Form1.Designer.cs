@@ -59,6 +59,7 @@
             // 
             // trbFrame
             // 
+            trbFrame.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             trbFrame.LargeChange = 1;
             trbFrame.Location = new Point(234, 335);
             trbFrame.Maximum = 10000;
@@ -70,6 +71,7 @@
             // 
             // btnFileOpen
             // 
+            btnFileOpen.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
             btnFileOpen.Font = new Font("맑은 고딕", 12F);
             btnFileOpen.Location = new Point(908, 206);
             btnFileOpen.Name = "btnFileOpen";
@@ -112,6 +114,7 @@
             // 
             // btnFileDelete
             // 
+            btnFileDelete.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
             btnFileDelete.Font = new Font("맑은 고딕", 12F);
             btnFileDelete.Location = new Point(908, 263);
             btnFileDelete.Name = "btnFileDelete";
@@ -123,6 +126,7 @@
             // 
             // txbFrame
             // 
+            txbFrame.Anchor = AnchorStyles.Top | AnchorStyles.Right;
             txbFrame.Font = new Font("맑은 고딕", 12F, FontStyle.Regular, GraphicsUnit.Point, 129);
             txbFrame.Location = new Point(908, 12);
             txbFrame.Name = "txbFrame";
@@ -133,6 +137,7 @@
             // 
             // btnFrameMove
             // 
+            btnFrameMove.Anchor = AnchorStyles.Top | AnchorStyles.Right;
             btnFrameMove.Font = new Font("맑은 고딕", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 129);
             btnFrameMove.Location = new Point(1037, 12);
             btnFrameMove.Name = "btnFrameMove";
@@ -144,6 +149,7 @@
             // 
             // lblCurFilePage
             // 
+            lblCurFilePage.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
             lblCurFilePage.AutoSize = true;
             lblCurFilePage.Font = new Font("맑은 고딕", 14.25F, FontStyle.Regular, GraphicsUnit.Point, 129);
             lblCurFilePage.Location = new Point(11, 346);
@@ -154,6 +160,7 @@
             // 
             // txbFileNum
             // 
+            txbFileNum.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
             txbFileNum.Font = new Font("맑은 고딕", 14.25F, FontStyle.Regular, GraphicsUnit.Point, 129);
             txbFileNum.Location = new Point(133, 343);
             txbFileNum.Name = "txbFileNum";
@@ -164,6 +171,7 @@
             // 
             // btnExtend
             // 
+            btnExtend.Anchor = AnchorStyles.Top | AnchorStyles.Right;
             btnExtend.Font = new Font("맑은 고딕", 15.75F, FontStyle.Regular, GraphicsUnit.Point, 129);
             btnExtend.Location = new Point(908, 47);
             btnExtend.Name = "btnExtend";
@@ -175,6 +183,7 @@
             // 
             // picCurFrame
             // 
+            picCurFrame.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             picCurFrame.Location = new Point(234, 12);
             picCurFrame.Name = "picCurFrame";
             picCurFrame.Size = new Size(668, 317);
@@ -197,6 +206,7 @@
             // 
             // btnFileMultiDel
             // 
+            btnFileMultiDel.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
             btnFileMultiDel.Font = new Font("맑은 고딕", 12F);
             btnFileMultiDel.Location = new Point(908, 320);
             btnFileMultiDel.Name = "btnFileMultiDel";
@@ -208,14 +218,16 @@
             // 
             // dgvDebug
             // 
+            dgvDebug.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             dgvDebug.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            dgvDebug.Location = new Point(621, 386);
+            dgvDebug.Location = new Point(577, 386);
             dgvDebug.Name = "dgvDebug";
-            dgvDebug.Size = new Size(498, 413);
+            dgvDebug.Size = new Size(542, 413);
             dgvDebug.TabIndex = 19;
             // 
             // btnAutoPic
             // 
+            btnAutoPic.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
             btnAutoPic.Font = new Font("맑은 고딕", 12F);
             btnAutoPic.Location = new Point(12, 281);
             btnAutoPic.Name = "btnAutoPic";
@@ -227,6 +239,7 @@
             // 
             // txbFPS
             // 
+            txbFPS.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
             txbFPS.Font = new Font("맑은 고딕", 14.25F, FontStyle.Regular, GraphicsUnit.Point, 129);
             txbFPS.Location = new Point(59, 242);
             txbFPS.Name = "txbFPS";
@@ -239,6 +252,7 @@
             // 
             // label1
             // 
+            label1.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
             label1.AutoSize = true;
             label1.Font = new Font("맑은 고딕", 14.25F);
             label1.Location = new Point(11, 245);
@@ -249,11 +263,12 @@
             // 
             // lstFiles
             // 
+            lstFiles.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             lstFiles.Columns.AddRange(new ColumnHeader[] { colNum, colName, colTime });
             lstFiles.FullRowSelect = true;
             lstFiles.Location = new Point(12, 386);
             lstFiles.Name = "lstFiles";
-            lstFiles.Size = new Size(603, 413);
+            lstFiles.Size = new Size(559, 413);
             lstFiles.TabIndex = 23;
             lstFiles.UseCompatibleStateImageBehavior = false;
             lstFiles.View = View.Details;
