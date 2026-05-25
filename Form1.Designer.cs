@@ -39,7 +39,6 @@
             btnFrameMove = new Button();
             lblCurFilePage = new Label();
             txbFileNum = new TextBox();
-            btnExtend = new Button();
             picCurFrame = new PictureBox();
             lblFrameNum = new Label();
             btnFileMultiDel = new Button();
@@ -52,6 +51,7 @@
             colNum = new ColumnHeader();
             colName = new ColumnHeader();
             colTime = new ColumnHeader();
+            btnStartCollection = new Button();
             ((System.ComponentModel.ISupportInitialize)trbFrame).BeginInit();
             ((System.ComponentModel.ISupportInitialize)picCurFrame).BeginInit();
             ((System.ComponentModel.ISupportInitialize)dgvDebug).BeginInit();
@@ -72,7 +72,7 @@
             // btnFileOpen
             // 
             btnFileOpen.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
-            btnFileOpen.Font = new Font("맑은 고딕", 12F);
+            btnFileOpen.Font = new Font("맑은 고딕", 15.75F);
             btnFileOpen.Location = new Point(908, 206);
             btnFileOpen.Name = "btnFileOpen";
             btnFileOpen.Size = new Size(211, 51);
@@ -96,7 +96,7 @@
             // 
             lblAcceleration.AutoSize = true;
             lblAcceleration.Font = new Font("맑은 고딕", 14.25F);
-            lblAcceleration.Location = new Point(12, 98);
+            lblAcceleration.Location = new Point(11, 76);
             lblAcceleration.Name = "lblAcceleration";
             lblAcceleration.Size = new Size(50, 25);
             lblAcceleration.TabIndex = 10;
@@ -106,7 +106,7 @@
             // 
             lblSteeringAngle.AutoSize = true;
             lblSteeringAngle.Font = new Font("맑은 고딕", 14.25F);
-            lblSteeringAngle.Location = new Point(12, 123);
+            lblSteeringAngle.Location = new Point(11, 101);
             lblSteeringAngle.Name = "lblSteeringAngle";
             lblSteeringAngle.Size = new Size(69, 25);
             lblSteeringAngle.TabIndex = 11;
@@ -115,7 +115,7 @@
             // btnFileDelete
             // 
             btnFileDelete.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
-            btnFileDelete.Font = new Font("맑은 고딕", 12F);
+            btnFileDelete.Font = new Font("맑은 고딕", 15.75F);
             btnFileDelete.Location = new Point(908, 263);
             btnFileDelete.Name = "btnFileDelete";
             btnFileDelete.Size = new Size(211, 51);
@@ -169,18 +169,6 @@
             txbFileNum.TextChanged += txbFileNum_TextChanged;
             txbFileNum.KeyDown += txbFileNum_KeyDown;
             // 
-            // btnExtend
-            // 
-            btnExtend.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-            btnExtend.Font = new Font("맑은 고딕", 15.75F, FontStyle.Regular, GraphicsUnit.Point, 129);
-            btnExtend.Location = new Point(908, 47);
-            btnExtend.Name = "btnExtend";
-            btnExtend.Size = new Size(216, 46);
-            btnExtend.TabIndex = 9;
-            btnExtend.Text = "기록창 열기";
-            btnExtend.UseVisualStyleBackColor = true;
-            btnExtend.Click += btnExtend_Click;
-            // 
             // picCurFrame
             // 
             picCurFrame.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
@@ -207,7 +195,7 @@
             // btnFileMultiDel
             // 
             btnFileMultiDel.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
-            btnFileMultiDel.Font = new Font("맑은 고딕", 12F);
+            btnFileMultiDel.Font = new Font("맑은 고딕", 15.75F);
             btnFileMultiDel.Location = new Point(908, 320);
             btnFileMultiDel.Name = "btnFileMultiDel";
             btnFileMultiDel.Size = new Size(211, 51);
@@ -228,7 +216,7 @@
             // btnAutoPic
             // 
             btnAutoPic.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
-            btnAutoPic.Font = new Font("맑은 고딕", 12F);
+            btnAutoPic.Font = new Font("맑은 고딕", 15.75F);
             btnAutoPic.Location = new Point(12, 281);
             btnAutoPic.Name = "btnAutoPic";
             btnAutoPic.Size = new Size(211, 51);
@@ -291,11 +279,24 @@
             colTime.Text = "수정한 날짜";
             colTime.Width = 300;
             // 
+            // btnStartCollection
+            // 
+            btnStartCollection.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+            btnStartCollection.Font = new Font("맑은 고딕", 15.75F);
+            btnStartCollection.Location = new Point(11, 185);
+            btnStartCollection.Name = "btnStartCollection";
+            btnStartCollection.Size = new Size(211, 51);
+            btnStartCollection.TabIndex = 24;
+            btnStartCollection.Text = "학습 시작";
+            btnStartCollection.UseVisualStyleBackColor = true;
+            btnStartCollection.Click += btnStartCollection_Click;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(1129, 808);
+            Controls.Add(btnStartCollection);
             Controls.Add(lstFiles);
             Controls.Add(label1);
             Controls.Add(txbFPS);
@@ -307,7 +308,6 @@
             Controls.Add(lblAcceleration);
             Controls.Add(picCurFrame);
             Controls.Add(lblTitle);
-            Controls.Add(btnExtend);
             Controls.Add(txbFileNum);
             Controls.Add(lblCurFilePage);
             Controls.Add(btnFrameMove);
@@ -336,7 +336,6 @@
         private Button btnFrameMove;
         private Label lblCurFilePage;
         private TextBox txbFileNum;
-        private Button btnExtend;
         private PictureBox picCurFrame;
         private Label lblFrameNum;
         private Button btnFileMultiDel;
@@ -349,5 +348,6 @@
         private ColumnHeader colName;
         private ColumnHeader colTime;
         private ColumnHeader colNum;
+        private Button btnStartCollection;
     }
 }

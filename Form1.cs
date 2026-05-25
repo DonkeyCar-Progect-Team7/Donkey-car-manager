@@ -550,8 +550,8 @@ namespace Donkey_car_manager
                 }
             }
         }
-
-        private void btnExtend_Click(object sender, EventArgs e)
+        //기록창 확장 버튼 이전 코드
+        /*private void btnExtend_Click(object sender, EventArgs e)
         {
             if (!isDebugExpanded)
             {
@@ -567,7 +567,7 @@ namespace Donkey_car_manager
                 btnExtend.Text = "기록창 열기";
                 isDebugExpanded = false;
             }
-        }
+        }*/
 
         private void timerPlay_Tick(object sender, EventArgs e)
         {
@@ -743,6 +743,24 @@ namespace Donkey_car_manager
         private void picCurFrame_Click(object sender, EventArgs e)
         {
 
+        }
+
+        // WinForm에서 '수집 시작' 버튼 클릭 시
+        //****시뮬레이터 파일경로랑 프로그램 이름 매칭해줘야합니다****
+        private void btnStartCollection_Click(object sender, EventArgs e)
+        {
+            ProcessStartInfo startInfo = new ProcessStartInfo();
+            startInfo.FileName = @"C:\Users\YourName\anaconda3\envs\donkey\python.exe"; // 파이썬 가상환경 경로
+            startInfo.Arguments = "manage.py drive --js"; // 시뮬레이터/조이스틱 연결 모드
+            startInfo.WorkingDirectory = @"C:\donkeycar\mycar"; // donkeycar 프로젝트 경로
+
+            startInfo.UseShellExecute = false;
+            startInfo.RedirectStandardOutput = true;
+            startInfo.CreateNoWindow = true;
+
+            Process donkeyProcess = new Process();
+            donkeyProcess.StartInfo = startInfo;
+            donkeyProcess.Start();
         }
     }
 }
