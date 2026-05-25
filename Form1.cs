@@ -1,5 +1,7 @@
 using System.Diagnostics;
+using System.Windows.Forms.DataVisualization.Charting;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement;
+using System.Windows.Forms.DataVisualization.Charting;
 namespace Donkey_car_manager
 {
     public partial class Form1 : Form
@@ -43,13 +45,86 @@ namespace Donkey_car_manager
             InitializeComponent();
             this.lstFiles.MouseWheel += new MouseEventHandler(lstFiles_MouseWheel);
         }
-
-        // 4. 폼 로드 이벤트
+        
+        //여기부터 동키카 그래프를 위한 코드
+        private Chart chartDonkey; // 전역 변수로 차트 선언
         private void Form1_Load(object sender, EventArgs e)
+        {
+            // 1. 코드로 Chart 컨트롤 동적 생성
+            chartDonkey = new Chart();
+
+            // 2. 중요: dgvDebug의 위치와 크기, Anchor 속성을 그대로 복사
+            chartDonkey.Location = dgvDebug.Location;
+            chartDonkey.Size = dgvDebug.Size;
+            chartDonkey.Anchor = dgvDebug.Anchor; // 창 크기 조절 대응
+            chartDonkey.Visible = true;
+
+            // 3. 기존 dgvDebug는 숨기고, 그 자리에 차트 추가
+            dgvDebug.Visible = false;
+            this.Controls.Add(chartDonkey); // 폼에 차트 장착!
+
+            // --- 여기서부터는 지난번 차트 초기화 세팅 코드 그대로 적용 ---
+            chartDonkey.Series.Clear();
+            chartDonkey.ChartAreas.Clear();
+
+            ChartArea chartArea = new ChartArea("MainArea");
+            chartArea.AxisX.Title = "Time";
+            chartArea.AxisX.MajorGrid.LineColor = Color.LightGray;
+
+            chartArea.AxisY.Title = "Value";
+            chartArea.AxisY.Minimum = -1.0;
+            chartArea.AxisY.Maximum = 1.0;
+            chartArea.AxisY.MajorGrid.LineColor = Color.LightGray;
+            chartDonkey.ChartAreas.Add(chartArea);
+
+            // 조향값 선 세팅
+            Series seriesSteer = new Series("Steering");
+            seriesSteer.ChartType = SeriesChartType.Line;
+            seriesSteer.BorderWidth = 2;
+            seriesSteer.Color = Color.Red;
+            chartDonkey.Series.Add(seriesSteer);
+
+            // 쓰로틀 선 세팅
+            Series seriesThrottle = new Series("Throttle");
+            seriesThrottle.ChartType = SeriesChartType.Line;
+            seriesThrottle.BorderWidth = 2;
+            seriesThrottle.Color = Color.Blue;
+            chartDonkey.Series.Add(seriesThrottle);
+        }
+        // 4. 폼 로드 이벤트
+        /*private void Form1_Load(object sender, EventArgs e)
         {
             // 시작할 때는 기본 크기로 설정
             this.Width = normalWidth;
             targetWidth = normalWidth;
+
+            //디버깅 차트를 위한 코드
+            dgvDebug.Columns.Clear();
+            dgvDebug.Columns.Add("Time", "시간 (Ticks)");
+            dgvDebug.Columns.Add("Steer", "조향값 (Steering)");
+            dgvDebug.Columns.Add("Throttle", "쓰로틀 (Throttle)");
+
+            // 보기 좋게 정렬 및 크기 자동 맞춤
+            dgvDebug.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+        }*/
+        private int tickCount = 0;
+        
+        private void UpdateDataGridView(double steer, double throttle)
+        {
+            // 새로운 행 추가
+            dgvDebug.Rows.Add(tickCount++, steer.ToString("F3"), throttle.ToString("F3"));
+
+            // 데이터가 너무 많아지면 스크롤을 가장 아래로 자동으로 내려줌
+            if (dgvDebug.Rows.Count > 0)
+            {
+                dgvDebug.FirstDisplayedScrollingRowIndex = dgvDebug.Rows.Count - 1;
+            }
+
+            // 메모리 관리를 위해 너무 옛날 데이터(예: 100개 이전)는 삭제하고 싶다면 추가
+            if (dgvDebug.Rows.Count > 100)
+            {
+                dgvDebug.Rows.RemoveAt(0);
+            }
         }
         private void label1_Click(object sender, EventArgs e)
         {
