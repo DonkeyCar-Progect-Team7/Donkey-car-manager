@@ -819,10 +819,50 @@ namespace Donkey_car_manager
         {
 
         }
+        private void btnStartCollection_Click(object sender, EventArgs e)
+        {
+            ProcessStartInfo startInfo = new ProcessStartInfo();
+            startInfo.FileName = "wsl.exe";
 
+            // 1. 🌟 본인의 우분투 환경 설정값
+            string linuxUser = "username";       // 👈 본인의 우분투 사용자 이름 (예: ubuntu, car 등)
+            string mycarFolder = "mycar";       // 👈 manage.py가 들어있는 동키카 프로젝트 폴더명
+            string condaPath = $"/home/{linuxUser}/anaconda3"; // 아나콘다 설치 경로
+
+            // 리눅스 내부 절대 경로
+            string linuxPath = $"/home/{linuxUser}/{mycarFolder}";
+
+            // 2. 🌟 [핵심 수정] C# 프로세스가 리눅스 폴더를 바라보도록 윈도우용 WSL 네트워크 경로를 지정합니다.
+            // 윈도우 탐색기에 \\wsl$\우분투이름\home\... 형태로 접근하는 것과 같은 원리입니다.
+            // 기본 Ubuntu 배포판을 쓰신다면 아래 경로 양식이 완벽히 매칭됩니다.
+            startInfo.WorkingDirectory = $@"\\wsl$\Ubuntu\home\{linuxUser}\{mycarFolder}";
+
+            // 3. 실행할 리눅스 명령어 결합
+            string linuxCommand = $"cd {linuxPath} && source {condaPath}/bin/activate donkeycar && python3 manage.py drive";
+            startInfo.Arguments = $"-e bash -c \"{linuxCommand}\"";
+
+            // 4. 백그라운드 옵션
+            startInfo.UseShellExecute = false;
+            startInfo.RedirectStandardOutput = true;
+            startInfo.RedirectStandardError = true;
+            startInfo.CreateNoWindow = true;
+
+            Process donkeyProcess = new Process();
+            donkeyProcess.StartInfo = startInfo;
+
+            try
+            {
+                donkeyProcess.Start();
+                MessageBox.Show("동키카 프로세스가 시작되었습니다.\n이제 시뮬레이터에서 주행하면 데이터가 정상 저장됩니다.", "구동 성공");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"리눅스 프로세스 실행 중 오류 발생:\n{ex.Message}", "오류");
+            }
+        }
         // WinForm에서 '수집 시작' 버튼 클릭 시
         //****시뮬레이터 파일경로랑 프로그램 이름 매칭해줘야합니다****
-        private void btnStartCollection_Click(object sender, EventArgs e)
+        /*private void btnStartCollection_Click(object sender, EventArgs e)
         {
             ProcessStartInfo startInfo = new ProcessStartInfo();
             startInfo.FileName = @"C:\Users\YourName\anaconda3\envs\donkey\python.exe"; // 파이썬 가상환경 경로
@@ -836,6 +876,6 @@ namespace Donkey_car_manager
             Process donkeyProcess = new Process();
             donkeyProcess.StartInfo = startInfo;
             donkeyProcess.Start();
-        }
+        }*///이전코드
     }
 }
