@@ -281,7 +281,7 @@
             // 
             // btnStartCollection
             // 
-            btnStartCollection.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+            btnStartCollection.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
             btnStartCollection.Font = new Font("맑은 고딕", 15.75F);
             btnStartCollection.Location = new Point(11, 185);
             btnStartCollection.Name = "btnStartCollection";
