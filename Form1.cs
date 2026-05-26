@@ -821,46 +821,68 @@ namespace Donkey_car_manager
         }
         private void btnStartCollection_Click(object sender, EventArgs e)
         {
-            ProcessStartInfo startInfo = new ProcessStartInfo();
-            startInfo.FileName = "wsl.exe";
+            // =================================================================
+            // 1 구역: 리눅스(WSL) 동키카 서버 구동 세팅
+            // =================================================================
+            ProcessStartInfo wslInfo = new ProcessStartInfo();
+            wslInfo.FileName = "wsl.exe";
 
-            // 1. 본인의 우분투 환경 설정값
             string linuxUser = "username";       // 👈 본인의 우분투 사용자 이름
             string mycarFolder = "mycar";       // 👈 동키카 프로젝트 폴더명
             string condaPath = $"/home/{linuxUser}/anaconda3";
             string linuxPath = $"/home/{linuxUser}/{mycarFolder}";
 
-            // C# 프로세스의 작업 디렉토리를 WSL 네트워크 경로로 지정 (파일 저장 렉/오류 방지)
-            startInfo.WorkingDirectory = $@"\\wsl$\Ubuntu\home\{linuxUser}\{mycarFolder}";
+            wslInfo.WorkingDirectory = $@"\\wsl$\Ubuntu\home\{linuxUser}\{mycarFolder}";
 
-            // 실행할 리눅스 명령어 결합
             string linuxCommand = $"cd {linuxPath} && source {condaPath}/bin/activate donkeycar && python3 manage.py drive";
-            startInfo.Arguments = $"-e bash -c \"{linuxCommand}\"";
+            wslInfo.Arguments = $"-e bash -c \"{linuxCommand}\"";
 
-            startInfo.UseShellExecute = false;
-            startInfo.RedirectStandardOutput = true;
-            startInfo.RedirectStandardError = true;
-            startInfo.CreateNoWindow = true;
+            wslInfo.UseShellExecute = false;
+            wslInfo.RedirectStandardOutput = true;
+            wslInfo.RedirectStandardError = true;
+            wslInfo.CreateNoWindow = true;
 
-            Process donkeyProcess = new Process();
-            donkeyProcess.StartInfo = startInfo;
+            // =================================================================
+            // 2 구역: 🌟 윈도우 동키카 시뮬레이터(Donkeycar Sim.exe) 실행 세팅
+            // =================================================================
+            ProcessStartInfo simInfo = new ProcessStartInfo();
 
+            // 👈 본인의 컴퓨터에 'Donkeycar Sim.exe'가 설치된 실제 윈도우 절대 경로를 적어주세요!
+            simInfo.FileName = @"C:\Users\YourName\Desktop\DonkeySimWindows\Donkeycar Sim.exe";
+
+            // 시뮬레이터가 실행될 때 자기 폴더 안의 리소스를 정상적으로 참조할 수 있도록 작업 디렉토리 설정
+            simInfo.WorkingDirectory = System.IO.Path.GetDirectoryName(simInfo.FileName);
+            simInfo.UseShellExecute = true;
+
+            // =================================================================
+            // 3 구역: 차례대로 실행하기 (프로세스 기동)
+            // =================================================================
             try
             {
-                // 2. 동키카 백그라운드 프로세스 시작
-                donkeyProcess.Start();
+                // 1. 리눅스 동키카 파이썬 서버 실행
+                Process wslProcess = new Process();
+                wslProcess.StartInfo = wslInfo;
+                wslProcess.Start();
 
-                // 3. 🌟 [핵심 추가] 동키카 웹 제어창(localhost:8887)을 기본 브라우저로 자동 오픈
-                // 윈도우의 기본 쉘을 사용하여 URL을 실행하도록 설정합니다.
+                // 2. 🌟 윈도우 유니티 시뮬레이터 프로그램 실행
+                Process simProcess = new Process();
+                simProcess.StartInfo = simInfo;
+                simProcess.Start();
+
+                // 3. 약간의 딜레이(예: 1.5초) 후 웹 브라우저 조종창 오픈 
+                // (서버와 시뮬레이터가 켜질 시간을 아주 잠깐 주는 것이 안전합니다)
+                System.Threading.Thread.Sleep(1500);
+
                 string donkeyUrl = "http://localhost:8887";
                 Process.Start(new ProcessStartInfo(donkeyUrl) { UseShellExecute = true });
 
-                MessageBox.Show("동키카 프로세스가 구동되었으며 제어 웹사이트가 열렸습니다.\n" +
-                                "시뮬레이터 주행을 시작하시면 데이터가 정상 저장됩니다.", "구동 성공");
+                MessageBox.Show("동키카 서버, 시뮬레이터 프로그램, 제어 웹사이트가 모두 연동되어 실행되었습니다!",
+                                "올인원 구동 성공", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"프로세스 실행 또는 웹사이트 오픈 중 오류 발생:\n{ex.Message}", "오류");
+                MessageBox.Show($"올인원 실행 중 오류가 발생했습니다:\n{ex.Message}", "오류",
+                                MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
         // WinForm에서 '수집 시작' 버튼 클릭 시
