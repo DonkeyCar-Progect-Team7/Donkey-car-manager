@@ -705,7 +705,8 @@ namespace Donkey_car_manager
                 // 1열: 파일명 정렬 (🌟 1, 2, 3, 10, 100 숫자 순서대로 정렬하도록 수정)
                 if (isAscending)
                 {
-                    carImages = carImages.OrderBy(f => {
+                    carImages = carImages.OrderBy(f =>
+                    {
                         string fileName = System.IO.Path.GetFileNameWithoutExtension(f.FilePath);
                         // 혹시 파일명에 문자(cam-image_ 등)가 섞여 있을 것을 대비해 숫자만 추출합니다.
                         string numStr = System.Text.RegularExpressions.Regex.Replace(fileName, @"\D", "");
@@ -715,7 +716,8 @@ namespace Donkey_car_manager
                 }
                 else
                 {
-                    carImages = carImages.OrderByDescending(f => {
+                    carImages = carImages.OrderByDescending(f =>
+                    {
                         string fileName = System.IO.Path.GetFileNameWithoutExtension(f.FilePath);
                         string numStr = System.Text.RegularExpressions.Regex.Replace(fileName, @"\D", "");
                         return int.TryParse(numStr, out int num) ? num : 0;
@@ -980,6 +982,65 @@ namespace Donkey_car_manager
             {
                 // 🌟 바뀐 버튼 이름인 btnFileDelete_Click을 정확하게 호출해 줍니다!
                 btnFileDelete_Click(sender, e);
+            }
+        }
+
+        private void btnStartLearning_Click_1(object sender, EventArgs e)
+        {
+            // 1. 🔍 예외 처리: 사용자가 아직 파일을 한 번도 안 열었다면 경고 후 리턴
+            if (string.IsNullOrEmpty(currentSelectedFolderPath))
+            {
+                MessageBox.Show("먼저 [파일 열기] 버튼을 통해 정제할 데이터 폴더(tub)를 선택해 주세요.",
+                                "알림", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            // 2. 🌟 윈도우 경로를 WSL 리눅스 경로 형식으로 자동 변환합니다.
+            // 예: "C:\donkeycar\mycar\data\tub_1" ➡️ "/mnt/c/donkeycar/mycar/data/tub_1"
+            string winPath = currentSelectedFolderPath;
+            string linuxTubPath = winPath.Replace(@"\", "/")
+                                         .Replace("C:", "/mnt/c")
+                                         .Replace("c:", "/mnt/c");
+            // 혹시 D드라이브도 쓰신다면 .Replace("D:", "/mnt/d") 등 추가 가능
+
+            // 3. 본인의 우분투 환경 설정값
+            string linuxUser = "username";       // 👈 본인의 우분투 사용자 이름
+            string mycarFolder = "mycar";       // 👈 train.py가 들어있는 동키카 프로젝트 폴더명
+            string condaPath = $"/home/{linuxUser}/anaconda3";
+            string linuxPath = $"/home/{linuxUser}/{mycarFolder}";
+            string modelName = "mypilot.h5";    // 생성될 AI 모델 파일 이름
+
+            // 4. 🌟 변환된 리눅스 튜브 경로(linuxTubPath)를 --tub= 뒤에 그대로 주입합니다!
+            string linuxCommand = $"cd {linuxPath} && source {condaPath}/bin/activate donkeycar && python3 train.py --tub={linuxTubPath} --model=./models/{modelName}";
+
+            // 5. 프로세스 실행 설정 (우분투 터미널 창을 직접 띄움)
+            ProcessStartInfo startInfo = new ProcessStartInfo();
+            startInfo.FileName = "wsl.exe";
+            startInfo.Arguments = $"-d Ubuntu bash -c \"{linuxCommand}; exec bash\"";
+            startInfo.UseShellExecute = true;
+            startInfo.CreateNoWindow = false;
+
+            Process trainProcess = new Process();
+            trainProcess.StartInfo = startInfo;
+
+            try
+            {
+                DialogResult confirm = MessageBox.Show(
+                    $"현재 열려 있는 폴더 데이터로 학습을 시작하시겠습니까?\n\n" +
+                    $"윈도우 경로: {winPath}\n" +
+                    $"리눅스 경로: {linuxTubPath}\n\n" +
+                    "※ 확인을 누르면 AI 학습을 진행하는 우분투 창이 새로 열립니다.",
+                    "학습 시작", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+
+                if (confirm == DialogResult.Yes)
+                {
+                    trainProcess.Start();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"AI 학습 프로세스 구동 중 오류 발생:\n{ex.Message}", "오류",
+                                MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
     }
