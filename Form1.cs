@@ -998,25 +998,34 @@ namespace Donkey_car_manager
             // 2. 🌟 윈도우 경로를 WSL 리눅스 경로 형식으로 자동 변환합니다.
             // 예: "C:\donkeycar\mycar\data\tub_1" ➡️ "/mnt/c/donkeycar/mycar/data/tub_1"
             string winPath = currentSelectedFolderPath;
-            string linuxTubPath = winPath.Replace(@"\", "/")
-                                         .Replace("C:", "/mnt/c")
-                                         .Replace("c:", "/mnt/c");
+          
+
             // 혹시 D드라이브도 쓰신다면 .Replace("D:", "/mnt/d") 등 추가 가능
 
             // 3. 본인의 우분투 환경 설정값
-            string linuxUser = "username";       // 👈 본인의 우분투 사용자 이름
-            string mycarFolder = "mycar";       // 👈 train.py가 들어있는 동키카 프로젝트 폴더명
-            string condaPath = $"/home/{linuxUser}/anaconda3";
+            string linuxUser = "leetjdgus";       // 👈 본인의 우분투 사용자 이름
+            string mycarFolder = "mysim";       // 👈 train.py가 들어있는 동키카 프로젝트 폴더명
+            string condaPath = $"/home/{linuxUser}/miniconda3";
             string linuxPath = $"/home/{linuxUser}/{mycarFolder}";
-            string modelName = "mypilot.h5";    // 생성될 AI 모델 파일 이름
+            string modelName = "mypilot.keras";    // 생성될 AI 모델 파일 이름
+
+            // 학습 데이터 폴더
+            string linuxTubPath =
+                $"/home/{linuxUser}/{mycarFolder}/data";
 
             // 4. 🌟 변환된 리눅스 튜브 경로(linuxTubPath)를 --tub= 뒤에 그대로 주입합니다!
-            string linuxCommand = $"cd {linuxPath} && source {condaPath}/bin/activate donkeycar && python3 train.py --tub={linuxTubPath} --model=./models/{modelName}";
+            string linuxCommand =
+                $"cd {linuxPath} && " +
+                $"source {condaPath}/bin/activate e2e_env && " +
+                $"python3 train.py " +
+                $"--tubs {linuxTubPath} " +
+                $" --model ./models/{modelName}";
 
             // 5. 프로세스 실행 설정 (우분투 터미널 창을 직접 띄움)
             ProcessStartInfo startInfo = new ProcessStartInfo();
             startInfo.FileName = "wsl.exe";
-            startInfo.Arguments = $"-d Ubuntu bash -c \"{linuxCommand}; exec bash\"";
+            startInfo.Arguments =
+                $"-d Ubuntu-22.04 bash -c \"{linuxCommand}; exec bash\"";
             startInfo.UseShellExecute = true;
             startInfo.CreateNoWindow = false;
 
@@ -1026,22 +1035,18 @@ namespace Donkey_car_manager
             try
             {
                 DialogResult confirm = MessageBox.Show(
-                    $"현재 열려 있는 폴더 데이터로 학습을 시작하시겠습니까?\n\n" +
-                    $"윈도우 경로: {winPath}\n" +
-                    $"리눅스 경로: {linuxTubPath}\n\n" +
-                    "※ 확인을 누르면 AI 학습을 진행하는 우분투 창이 새로 열립니다.",
-                    "학습 시작", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                   $"실행 명령:\n\n{linuxCommand}");
 
-                if (confirm == DialogResult.Yes)
-                {
-                    trainProcess.Start();
-                }
+                trainProcess.Start();
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"AI 학습 프로세스 구동 중 오류 발생:\n{ex.Message}", "오류",
-                                MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(
+                    ex.Message);
+
             }
         }
+                
+        
     }
 }
