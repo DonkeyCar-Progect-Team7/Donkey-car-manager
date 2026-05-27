@@ -52,6 +52,7 @@
             colName = new ColumnHeader();
             colTime = new ColumnHeader();
             btnStartCollection = new Button();
+            btnStartLearning = new Button();
             ((System.ComponentModel.ISupportInitialize)trbFrame).BeginInit();
             ((System.ComponentModel.ISupportInitialize)picCurFrame).BeginInit();
             ((System.ComponentModel.ISupportInitialize)dgvDebug).BeginInit();
@@ -65,7 +66,7 @@
             trbFrame.Maximum = 10000;
             trbFrame.Name = "trbFrame";
             trbFrame.Size = new Size(668, 45);
-            trbFrame.TabIndex = 6;
+            trbFrame.TabIndex = 5;
             trbFrame.Scroll += trbFrame_Scroll;
             trbFrame.MouseDown += trbFrame_MouseDown;
             // 
@@ -76,7 +77,7 @@
             btnFileOpen.Location = new Point(908, 206);
             btnFileOpen.Name = "btnFileOpen";
             btnFileOpen.Size = new Size(211, 51);
-            btnFileOpen.TabIndex = 10;
+            btnFileOpen.TabIndex = 9;
             btnFileOpen.Text = "파일 열기";
             btnFileOpen.UseVisualStyleBackColor = true;
             btnFileOpen.Click += btnFileOpen_Click;
@@ -119,7 +120,7 @@
             btnFileDelete.Location = new Point(908, 263);
             btnFileDelete.Name = "btnFileDelete";
             btnFileDelete.Size = new Size(211, 51);
-            btnFileDelete.TabIndex = 11;
+            btnFileDelete.TabIndex = 10;
             btnFileDelete.Text = "파일 삭제";
             btnFileDelete.UseVisualStyleBackColor = true;
             btnFileDelete.Click += btnFileDelete_Click;
@@ -131,7 +132,7 @@
             txbFrame.Location = new Point(908, 12);
             txbFrame.Name = "txbFrame";
             txbFrame.Size = new Size(123, 29);
-            txbFrame.TabIndex = 7;
+            txbFrame.TabIndex = 6;
             txbFrame.KeyDown += txbFrame_KeyDown;
             txbFrame.KeyPress += txbFrame_KeyPress;
             // 
@@ -142,7 +143,7 @@
             btnFrameMove.Location = new Point(1037, 12);
             btnFrameMove.Name = "btnFrameMove";
             btnFrameMove.Size = new Size(87, 29);
-            btnFrameMove.TabIndex = 8;
+            btnFrameMove.TabIndex = 7;
             btnFrameMove.Text = "프레임 이동";
             btnFrameMove.UseVisualStyleBackColor = true;
             btnFrameMove.Click += btnFrameMove_Click;
@@ -199,7 +200,7 @@
             btnFileMultiDel.Location = new Point(908, 320);
             btnFileMultiDel.Name = "btnFileMultiDel";
             btnFileMultiDel.Size = new Size(211, 51);
-            btnFileMultiDel.TabIndex = 12;
+            btnFileMultiDel.TabIndex = 11;
             btnFileMultiDel.Text = "파일 다중 삭제";
             btnFileMultiDel.UseVisualStyleBackColor = true;
             btnFileMultiDel.Click += btnFileMultiDel_Click;
@@ -211,7 +212,7 @@
             dgvDebug.Location = new Point(577, 386);
             dgvDebug.Name = "dgvDebug";
             dgvDebug.Size = new Size(542, 413);
-            dgvDebug.TabIndex = 19;
+            dgvDebug.TabIndex = 13;
             // 
             // btnAutoPic
             // 
@@ -220,7 +221,7 @@
             btnAutoPic.Location = new Point(12, 281);
             btnAutoPic.Name = "btnAutoPic";
             btnAutoPic.Size = new Size(211, 51);
-            btnAutoPic.TabIndex = 2;
+            btnAutoPic.TabIndex = 3;
             btnAutoPic.Text = "자동 넘기기";
             btnAutoPic.UseVisualStyleBackColor = true;
             btnAutoPic.Click += btnAutoPic_Click;
@@ -232,10 +233,11 @@
             txbFPS.Location = new Point(59, 242);
             txbFPS.Name = "txbFPS";
             txbFPS.Size = new Size(164, 33);
-            txbFPS.TabIndex = 1;
+            txbFPS.TabIndex = 2;
             // 
             // timerPlay
             // 
+            timerPlay.Interval = 20;
             timerPlay.Tick += timerPlay_Tick;
             // 
             // label1
@@ -257,12 +259,13 @@
             lstFiles.Location = new Point(12, 386);
             lstFiles.Name = "lstFiles";
             lstFiles.Size = new Size(559, 413);
-            lstFiles.TabIndex = 23;
+            lstFiles.TabIndex = 12;
             lstFiles.UseCompatibleStateImageBehavior = false;
             lstFiles.View = View.Details;
             lstFiles.ColumnClick += lstFiles_ColumnClick;
             lstFiles.ItemSelectionChanged += lstFiles_ItemSelectionChanged;
             lstFiles.SelectedIndexChanged += lstFiles_SelectedIndexChanged;
+            lstFiles.KeyDown += lstFiles_KeyDown;
             // 
             // colNum
             // 
@@ -286,16 +289,28 @@
             btnStartCollection.Location = new Point(11, 185);
             btnStartCollection.Name = "btnStartCollection";
             btnStartCollection.Size = new Size(211, 51);
-            btnStartCollection.TabIndex = 24;
-            btnStartCollection.Text = "학습 시작";
+            btnStartCollection.TabIndex = 1;
+            btnStartCollection.Text = "시뮬레이터 실행";
             btnStartCollection.UseVisualStyleBackColor = true;
             btnStartCollection.Click += btnStartCollection_Click;
+            // 
+            // btnStartLearning
+            // 
+            btnStartLearning.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+            btnStartLearning.Font = new Font("맑은 고딕", 15.75F);
+            btnStartLearning.Location = new Point(908, 149);
+            btnStartLearning.Name = "btnStartLearning";
+            btnStartLearning.Size = new Size(211, 51);
+            btnStartLearning.TabIndex = 8;
+            btnStartLearning.Text = "학습 시작";
+            btnStartLearning.UseVisualStyleBackColor = true;
             // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(1129, 808);
+            Controls.Add(btnStartLearning);
             Controls.Add(btnStartCollection);
             Controls.Add(lstFiles);
             Controls.Add(label1);
@@ -349,5 +364,6 @@
         private ColumnHeader colTime;
         private ColumnHeader colNum;
         private Button btnStartCollection;
+        private Button btnStartLearning;
     }
 }

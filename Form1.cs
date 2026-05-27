@@ -6,6 +6,8 @@ namespace Donkey_car_manager
 {
     public partial class Form1 : Form
     {
+        // 🌟 현재 사용자가 파일 열기로 연 폴더의 윈도우 절대 경로를 기억할 변수
+        private string currentSelectedFolderPath = string.Empty;
         public class CarFileInfo
         {
             public string FilePath { get; set; }
@@ -44,8 +46,12 @@ namespace Donkey_car_manager
         {
             InitializeComponent();
             this.lstFiles.MouseWheel += new MouseEventHandler(lstFiles_MouseWheel);
+            // 🌟 픽처박스의 깜빡임과 이미지 튀는 현상을 방지하는 더블 버퍼링 활성화
+            System.Reflection.PropertyInfo aProp = typeof(System.Windows.Forms.Control)
+                .GetProperty("DoubleBuffered", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            aProp.SetValue(picCurFrame, true, null);
         }
-        
+
         //여기부터 동키카 그래프를 위한 코드
         private Chart chartDonkey; // 전역 변수로 차트 선언
         private void Form1_Load(object sender, EventArgs e)
@@ -108,7 +114,7 @@ namespace Donkey_car_manager
             dgvDebug.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
         }*/
         private int tickCount = 0;
-        
+
         private void UpdateDataGridView(double steer, double throttle)
         {
             // 새로운 행 추가
@@ -140,6 +146,7 @@ namespace Donkey_car_manager
             {
                 if (fbd.ShowDialog() == DialogResult.OK)
                 {
+                    currentSelectedFolderPath = fbd.SelectedPath; //경로를 연 폴더의 위치를 저장
                     // 1. 선택한 폴더에서 JPG 이미지 파일 목록을 배열로 가져옵니다.
                     // 대소문자 .jpg, .JPG는 물론이고 .jpeg까지 알아서 다 찾아주는 코드입니다.
                     string[] files = System.IO.Directory.GetFiles(fbd.SelectedPath, "*.*")
@@ -441,88 +448,73 @@ namespace Donkey_car_manager
         }
         private void btnFileDelete_Click(object sender, EventArgs e)
         {
-            // 삭제할 파일이 있는지 먼저 확인
-            if (carImages == null || carImages.Count == 0 || currentImageIndex < 0 || currentImageIndex >= carImages.Count)
+            // 1. 리스트뷰에서 선택된 항목이 있는지 확인
+            if (lstFiles.SelectedItems.Count == 0)
             {
-                MessageBox.Show("삭제할 파일이 없습니다.", "알림", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("삭제할 프레임을 리스트뷰에서 선택해 주세요.", "알림", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            // 사용자에게 진짜 삭제할 것인지 한 번 더 확인 (안전장치)
-            DialogResult result = MessageBox.Show("현재 프레임 이미지를 정말로 삭제하시겠습니까?", "삭제 확인",
-                                                  MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            // 자동 재생 중이면 잠시 멈춤
+            if (isPlaying) StopAutoPlay();
+
+            // 2. 현재 선택된 아이템의 '번호(순번)'를 가져와 실제 데이터 인덱스로 역산
+            ListViewItem selectedItem = lstFiles.SelectedItems[0];
+            int globalIndex = int.Parse(selectedItem.Text) - 1;
+
+            if (globalIndex < 0 || globalIndex >= carImages.Count) return;
+
+            string targetFilePath = carImages[globalIndex].FilePath;
+
+            // 3. 사용자에게 진짜 지울지 확인
+            DialogResult result = MessageBox.Show(
+                $"선택한 프레임({selectedItem.SubItems[1].Text})을 정말로 삭제하시겠습니까?\n디스크에서 파일이 영구히 삭제됩니다.",
+                "파일 삭제 확인",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning);
 
             if (result == DialogResult.Yes)
             {
                 try
                 {
-                    // 1. 현재 픽쳐박스에 띄워진 이미지를 해제합니다. (파일 잠금 해제 필수!)
+                    // 4. 픽처박스가 파일을 붙잡고 있어서 생기는 삭제 에러(유령 프레임 원인) 방지
                     if (picCurFrame.Image != null)
                     {
                         picCurFrame.Image.Dispose();
                         picCurFrame.Image = null;
                     }
 
-                    // 가비지 컬렉터를 강제로 실행하여 파일 스트림 리소스를 완전히 풀어줍니다.
-                    GC.Collect();
-                    GC.WaitForPendingFinalizers();
-
-                    // 2. 실제 컴퓨터 디스크에서 파일 삭제
-                    string fileToDelete = carImages[currentImageIndex].FilePath;
-                    if (System.IO.File.Exists(fileToDelete))
+                    // 5. 실제 하드디스크에서 이미지 파일 삭제
+                    if (System.IO.File.Exists(targetFilePath))
                     {
-                        System.IO.File.Delete(fileToDelete);
+                        System.IO.File.Delete(targetFilePath);
                     }
 
-                    // 3. 프로그램 내부 이미지 데이터 리스트에서 해당 경로 삭제
-                    carImages.RemoveAt(currentImageIndex);
+                    // 6. 데이터 바구니(carImages)에서 제거
+                    carImages.RemoveAt(globalIndex);
 
-                    // 4. 파일을 지운 후 데이터 수에 따른 UI 예외 처리
-                    if (carImages.Count == 0)
+                    // 7. 데이터 개수 기반 전체 페이지 및 트랙바 범위 재계산
+                    totalPages = (int)Math.Ceiling((double)carImages.Count / pageSize);
+                    trbFrame.Maximum = Math.Max(0, carImages.Count - 1);
+
+                    // 8. 현재 인덱스가 범위를 벗어나지 않도록 보정
+                    if (currentImageIndex >= carImages.Count)
                     {
-                        // 모든 파일이 다 지워졌을 때 초기화 상태로 만듦
-                        trbFrame.Maximum = 0;
-                        trbFrame.Value = 0;
-                        currentPage = 0;
-                        totalPages = 0;
-                        currentImageIndex = 0;
-
-                        lstFiles.Items.Clear();
-                        lblCurFilePage.Text = "0 / 0";
-                        MessageBox.Show("폴더 내의 모든 이미지가 삭제되었습니다.", "알림");
+                        currentImageIndex = Math.Max(0, carImages.Count - 1);
                     }
-                    else
-                    {
-                        // 리스트의 맨 마지막 프레임을 지운 경우라면 인덱스를 하나 앞으로 당겨줍니다.
-                        if (currentImageIndex >= carImages.Count)
-                        {
-                            currentImageIndex = carImages.Count - 1;
-                        }
+                    currentPage = currentImageIndex / pageSize;
 
-                        // 전체 페이지 수 재계산
-                        totalPages = (int)Math.Ceiling((double)carImages.Count / pageSize);
+                    // 9. 화면 즉시 새로고침 (리스트뷰와 이미지 뷰어)
+                    UpdateListPage();
+                    ShowImage(currentImageIndex);
 
-                        // 프레임이 줄어들면서 현재 페이지 범위를 벗어났다면 현재 페이지 번호를 조절합니다.
-                        if (currentPage >= totalPages)
-                        {
-                            currentPage = totalPages - 1;
-                        }
-
-                        // 트랙바 범위 및 값 최신화
-                        trbFrame.Maximum = carImages.Count - 1;
-                        trbFrame.Value = currentImageIndex;
-
-                        // 리스트박스, 라벨, 픽쳐박스 화면 갱신
-                        UpdateListPage();
-                        ShowImage(currentImageIndex);
-                    }
+                    MessageBox.Show("프레임이 성공적으로 삭제되었습니다.", "완료", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"파일을 삭제하는 중 오류가 발생했습니다:\n{ex.Message}", "오류",
-                                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show($"파일 삭제 중 에러가 발생했습니다:\n{ex.Message}", "오류", MessageBoxButtons.OK, MessageBoxIcon.Error);
 
-                    // 삭제 실패 시 이미지를 다시 띄워 화면을 복구합니다.
+                    // 에러가 나더라도 이미지는 다시 안전하게 띄워주기
                     ShowImage(currentImageIndex);
                 }
             }
@@ -704,45 +696,50 @@ namespace Donkey_car_manager
         private void lstFiles_ColumnClick(object sender, ColumnClickEventArgs e)
         {
             if (carImages == null || carImages.Count == 0) return;
-            if (isPlaying) StopAutoPlay(); // 자동 재생 중이면 정지
+            if (isPlaying) StopAutoPlay();
 
-            // 클릭할 때마다 정렬 방향을 반대로 토글 (True <-> False)
             isAscending = !isAscending;
 
             if (e.Column == 1)
             {
-                // 1열: 파일명 정렬 (정상 작동 확인됨)
-                carImages = isAscending
-                    ? carImages.OrderBy(f => System.IO.Path.GetFileName(f.FilePath)).ToList()
-                    : carImages.OrderByDescending(f => System.IO.Path.GetFileName(f.FilePath)).ToList();
-            }
-            else if (e.Column == 2)
-            {
-                // 2열: 🌟 수정 시간 날짜 정렬 보강
-                // 팁: OrderBy/OrderByDescending이 꼬이지 않도록 명확하게 람다식을 지정합니다.
+                // 1열: 파일명 정렬 (🌟 1, 2, 3, 10, 100 숫자 순서대로 정렬하도록 수정)
                 if (isAscending)
                 {
-                    // 날짜 오름차순 (과거 -> 최근)
-                    carImages = carImages.OrderBy(f => f.WriteTime).ThenBy(f => System.IO.Path.GetFileName(f.FilePath)).ToList();
+                    carImages = carImages.OrderBy(f => {
+                        string fileName = System.IO.Path.GetFileNameWithoutExtension(f.FilePath);
+                        // 혹시 파일명에 문자(cam-image_ 등)가 섞여 있을 것을 대비해 숫자만 추출합니다.
+                        string numStr = System.Text.RegularExpressions.Regex.Replace(fileName, @"\D", "");
+                        // 숫자로 변환 성공하면 정수 크기로 비교, 실패하면 안전하게 0으로 처리
+                        return int.TryParse(numStr, out int num) ? num : 0;
+                    }).ToList();
                 }
                 else
                 {
-                    // 날짜 내림차순 (최근 -> 과거)
-                    carImages = carImages.OrderByDescending(f => f.WriteTime).ThenByDescending(f => System.IO.Path.GetFileName(f.FilePath)).ToList();
+                    carImages = carImages.OrderByDescending(f => {
+                        string fileName = System.IO.Path.GetFileNameWithoutExtension(f.FilePath);
+                        string numStr = System.Text.RegularExpressions.Regex.Replace(fileName, @"\D", "");
+                        return int.TryParse(numStr, out int num) ? num : 0;
+                    }).ToList();
                 }
+            }
+            else if (e.Column == 2)
+            {
+                // 2열: 날짜 정렬 (기존 코드 유지)
+                if (isAscending)
+                    carImages = carImages.OrderBy(f => f.WriteTime).ThenBy(f => System.IO.Path.GetFileName(f.FilePath)).ToList();
+                else
+                    carImages = carImages.OrderByDescending(f => f.WriteTime).ThenByDescending(f => System.IO.Path.GetFileName(f.FilePath)).ToList();
             }
             else
             {
-                // 0열(번호) 헤더를 누른 경우는 정렬하지 않고 빠져나갑니다.
                 return;
             }
 
-            // 🌟 정렬 후 무조건 첫 프레임, 첫 페이지로 인덱스를 강제 셋팅합니다.
+            // 정렬 후 인덱스 초기화 및 화면 갱신
             currentImageIndex = 0;
             currentPage = 0;
             trbFrame.Value = 0;
 
-            // 리스트뷰 화면과 이미지 뷰어를 즉시 새로고침합니다.
             UpdateListPage();
             ShowImage(currentImageIndex);
         }
@@ -827,20 +824,19 @@ namespace Donkey_car_manager
             ProcessStartInfo wslInfo = new ProcessStartInfo();
             wslInfo.FileName = "wsl.exe";
 
-            string linuxUser = "username";       // 👈 본인의 우분투 사용자 이름
-            string mycarFolder = "mycar";       // 👈 동키카 프로젝트 폴더명
-            string condaPath = $"/home/{linuxUser}/anaconda3";
-            string linuxPath = $"/home/{linuxUser}/{mycarFolder}";
+            string linuxUser = "root";       // 👈 본인의 우분투 사용자 이름
+            string mycarFolder = "mysim";       // 👈 동키카 프로젝트 폴더
+            string condaPath = "/root/miniconda3";
+            string linuxPath = "/root/mysim";
 
-            wslInfo.WorkingDirectory = $@"\\wsl$\Ubuntu\home\{linuxUser}\{mycarFolder}";
-
-            string linuxCommand = $"cd {linuxPath} && source {condaPath}/bin/activate donkeycar && python3 manage.py drive";
-            wslInfo.Arguments = $"-e bash -c \"{linuxCommand}\"";
+            wslInfo.WorkingDirectory = @"\\wsl$\Ubuntu\root\mysim";
+            string linuxCommand = $"cd /root/mysim && source /root/miniconda3/bin/activate donkeycar && python3 manage.py drive";
+            wslInfo.Arguments = "-e bash -ic \"conda activate e2e_env && cd ~/mysim && python3 manage.py drive; exec bash\"";
 
             wslInfo.UseShellExecute = false;
             wslInfo.RedirectStandardOutput = true;
-            wslInfo.RedirectStandardError = true;
-            wslInfo.CreateNoWindow = true;
+            wslInfo.RedirectStandardError = false;
+            wslInfo.CreateNoWindow = false;
 
             // =================================================================
             // 2 구역: 🌟 윈도우 동키카 시뮬레이터(Donkeycar Sim.exe) 실행 세팅
@@ -848,7 +844,7 @@ namespace Donkey_car_manager
             ProcessStartInfo simInfo = new ProcessStartInfo();
 
             // 👈 본인의 컴퓨터에 'Donkeycar Sim.exe'가 설치된 실제 윈도우 절대 경로를 적어주세요!
-            simInfo.FileName = @"C:\Users\YourName\Desktop\DonkeySimWindows\Donkeycar Sim.exe";
+            simInfo.FileName = @"D:\Nothings\DonkeySimWin\DonkeySimWin\donkey_sim.exe";
 
             // 시뮬레이터가 실행될 때 자기 폴더 안의 리소스를 정상적으로 참조할 수 있도록 작업 디렉토리 설정
             simInfo.WorkingDirectory = System.IO.Path.GetDirectoryName(simInfo.FileName);
@@ -901,6 +897,90 @@ namespace Donkey_car_manager
             Process donkeyProcess = new Process();
             donkeyProcess.StartInfo = startInfo;
             donkeyProcess.Start();
+        }
+        // WinForm에서 '수집 시작' 버튼 클릭 시
+        //****시뮬레이터 파일경로랑 프로그램 이름 매칭해줘야합니다****
+        /*private void btnStartCollection_Click(object sender, EventArgs e)
+        {
+            ProcessStartInfo startInfo = new ProcessStartInfo();
+            startInfo.FileName = @"C:\Users\YourName\anaconda3\envs\donkey\python.exe"; // 파이썬 가상환경 경로
+            startInfo.Arguments = "manage.py drive --js"; // 시뮬레이터/조이스틱 연결 모드
+            startInfo.WorkingDirectory = @"C:\donkeycar\mycar"; // donkeycar 프로젝트 경로
+
+            startInfo.UseShellExecute = false;
+            startInfo.RedirectStandardOutput = true;
+            startInfo.CreateNoWindow = true;
+
+            Process donkeyProcess = new Process();
+            donkeyProcess.StartInfo = startInfo;
+            donkeyProcess.Start();
         }*///이전코드
+        private void btnStartLearning_Click(object sender, EventArgs e)
+        {
+            // 1. 🔍 예외 처리: 사용자가 아직 파일을 한 번도 안 열었다면 경고 후 리턴
+            if (string.IsNullOrEmpty(currentSelectedFolderPath))
+            {
+                MessageBox.Show("먼저 [파일 열기] 버튼을 통해 정제할 데이터 폴더(tub)를 선택해 주세요.",
+                                "알림", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            // 2. 🌟 윈도우 경로를 WSL 리눅스 경로 형식으로 자동 변환합니다.
+            // 예: "C:\donkeycar\mycar\data\tub_1" ➡️ "/mnt/c/donkeycar/mycar/data/tub_1"
+            string winPath = currentSelectedFolderPath;
+            string linuxTubPath = winPath.Replace(@"\", "/")
+                                         .Replace("C:", "/mnt/c")
+                                         .Replace("c:", "/mnt/c");
+            // 혹시 D드라이브도 쓰신다면 .Replace("D:", "/mnt/d") 등 추가 가능
+
+            // 3. 본인의 우분투 환경 설정값
+            string linuxUser = "username";       // 👈 본인의 우분투 사용자 이름
+            string mycarFolder = "mycar";       // 👈 train.py가 들어있는 동키카 프로젝트 폴더명
+            string condaPath = $"/home/{linuxUser}/anaconda3";
+            string linuxPath = $"/home/{linuxUser}/{mycarFolder}";
+            string modelName = "mypilot.h5";    // 생성될 AI 모델 파일 이름
+
+            // 4. 🌟 변환된 리눅스 튜브 경로(linuxTubPath)를 --tub= 뒤에 그대로 주입합니다!
+            string linuxCommand = $"cd {linuxPath} && source {condaPath}/bin/activate donkeycar && python3 train.py --tub={linuxTubPath} --model=./models/{modelName}";
+
+            // 5. 프로세스 실행 설정 (우분투 터미널 창을 직접 띄움)
+            ProcessStartInfo startInfo = new ProcessStartInfo();
+            startInfo.FileName = "wsl.exe";
+            startInfo.Arguments = $"-d Ubuntu bash -c \"{linuxCommand}; exec bash\"";
+            startInfo.UseShellExecute = true;
+            startInfo.CreateNoWindow = false;
+
+            Process trainProcess = new Process();
+            trainProcess.StartInfo = startInfo;
+
+            try
+            {
+                DialogResult confirm = MessageBox.Show(
+                    $"현재 열려 있는 폴더 데이터로 학습을 시작하시겠습니까?\n\n" +
+                    $"윈도우 경로: {winPath}\n" +
+                    $"리눅스 경로: {linuxTubPath}\n\n" +
+                    "※ 확인을 누르면 AI 학습을 진행하는 우분투 창이 새로 열립니다.",
+                    "학습 시작", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+
+                if (confirm == DialogResult.Yes)
+                {
+                    trainProcess.Start();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"AI 학습 프로세스 구동 중 오류 발생:\n{ex.Message}", "오류",
+                                MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void lstFiles_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Delete)
+            {
+                // 🌟 바뀐 버튼 이름인 btnFileDelete_Click을 정확하게 호출해 줍니다!
+                btnFileDelete_Click(sender, e);
+            }
+        }
     }
 }
