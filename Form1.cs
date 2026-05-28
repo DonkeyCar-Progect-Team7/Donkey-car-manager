@@ -170,17 +170,17 @@ namespace Donkey_car_manager
             sA.Points.AddXY(frameIndex, angle);
             sT.Points.AddXY(frameIndex, throttle);
         }
-
+        //메세지박스 뜨는거 주석처리했습니다
         private void Form1_Shown(object sender, EventArgs e)
         {
             if (chartDriveData == null)
             {
-                MessageBox.Show("chartDriveData == null", "진단");
+                //MessageBox.Show("chartDriveData == null", "진단");
             }
             else
             {
                 string parentName = chartDriveData.Parent != null ? chartDriveData.Parent.Name : "null";
-                MessageBox.Show($"Visible={chartDriveData.Visible}, Parent={parentName}, Bounds={chartDriveData.Bounds}, InControls={this.Controls.Contains(chartDriveData)}", "진단");
+                //MessageBox.Show($"Visible={chartDriveData.Visible}, Parent={parentName}, Bounds={chartDriveData.Bounds}, InControls={this.Controls.Contains(chartDriveData)}", "진단");
                 chartDriveData.BringToFront();
                 chartDriveData.Refresh();
             }
@@ -995,40 +995,6 @@ namespace Donkey_car_manager
                                 MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
-        // WinForm에서 '수집 시작' 버튼 클릭 시
-        //****시뮬레이터 파일경로랑 프로그램 이름 매칭해줘야합니다****
-        /*private void btnStartCollection_Click(object sender, EventArgs e)
-        {
-            ProcessStartInfo startInfo = new ProcessStartInfo();
-            startInfo.FileName = @"C:\Users\YourName\anaconda3\envs\donkey\python.exe"; // 파이썬 가상환경 경로
-            startInfo.Arguments = "manage.py drive --js"; // 시뮬레이터/조이스틱 연결 모드
-            startInfo.WorkingDirectory = @"C:\donkeycar\mycar"; // donkeycar 프로젝트 경로
-
-            startInfo.UseShellExecute = false;
-            startInfo.RedirectStandardOutput = true;
-            startInfo.CreateNoWindow = true;
-
-            Process donkeyProcess = new Process();
-            donkeyProcess.StartInfo = startInfo;
-            donkeyProcess.Start();
-        }
-        // WinForm에서 '수집 시작' 버튼 클릭 시
-        //****시뮬레이터 파일경로랑 프로그램 이름 매칭해줘야합니다****
-        /*private void btnStartCollection_Click(object sender, EventArgs e)
-        {
-            ProcessStartInfo startInfo = new ProcessStartInfo();
-            startInfo.FileName = @"C:\Users\YourName\anaconda3\envs\donkey\python.exe"; // 파이썬 가상환경 경로
-            startInfo.Arguments = "manage.py drive --js"; // 시뮬레이터/조이스틱 연결 모드
-            startInfo.WorkingDirectory = @"C:\donkeycar\mycar"; // donkeycar 프로젝트 경로
-
-            startInfo.UseShellExecute = false;
-            startInfo.RedirectStandardOutput = true;
-            startInfo.CreateNoWindow = true;
-
-            Process donkeyProcess = new Process();
-            donkeyProcess.StartInfo = startInfo;
-            donkeyProcess.Start();
-        }*///이전코드
         private void btnStartLearning_Click(object sender, EventArgs e)
         {
             // 1. 🔍 예외 처리: 사용자가 아직 파일을 한 번도 안 열었다면 경고 후 리턴
