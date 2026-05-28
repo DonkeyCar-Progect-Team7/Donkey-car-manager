@@ -957,25 +957,29 @@ namespace Donkey_car_manager
             }
 
             // =================================================================
-            // 2 구역: 🌟 리눅스(WSL) 동키카 서버 구동 세팅 (배포판 이름 매칭 및 안전장치)
+            // 2 구역: 🌟 리눅스(WSL) 동키카 서버 구동 세팅 (cmd 우회법으로 에러 원천 차단)
             // =================================================================
             ProcessStartInfo wslInfo = new ProcessStartInfo();
-            wslInfo.FileName = "wsl.exe";
 
-            // 기존 코드의 우분투 환경 데이터 완벽 보존
+            // 🌟 wsl.exe를 직접 부르는 대신, 윈도우의 cmd.exe를 실행하여 우회 구동합니다.
+            // 이렇게 하면 리눅스 창이 100% 확률로 무조건 시각적으로 열립니다.
+            wslInfo.FileName = "cmd.exe";
+
+            // 고정 데이터 보존
             string linuxUser = "root";
             string mycarFolder = "mysim";
             string condaPath = "/root/miniconda3";
             string linuxPath = "/root/mysim";
 
-            wslInfo.UseShellExecute = true;
-            wslInfo.CreateNoWindow = false; // 리눅스 터미널 창을 눈으로 확인할 수 있게 명시적으로 띄움
-            wslInfo.WorkingDirectory = @"\\wsl$\Ubuntu-22.04\root\mysim"; // 🌟 배포판 명칭 매칭 수정
-
-            // 🌟 학습 코드와 일치하도록 배포판 인자를 -d Ubuntu-22.04로 정확히 교정합니다.
-            // 명령어 실행 후 창이 바로 닫히지 않고 오류 로그를 남기도록 '; exec bash'를 끝에 붙여줍니다.
+            // 리눅스 명령어 바인딩 (계정 충돌을 방지하기 위해 -u root 옵션을 추가해 줍니다)
             string linuxCommand = $"cd {linuxPath} && source {condaPath}/bin/activate donkeycar && python3 manage.py drive";
-            wslInfo.Arguments = $"-d Ubuntu-22.04 bash -c \"{linuxCommand}; exec bash\"";
+
+            // 🌟 cmd창을 열어(/c start) 제목이 "Donkeycar Server"인 새 터미널을 독립시키고 WSL 명령을 하달합니다.
+            // 마지막에 ; exec bash를 주어 파이썬 에러가 나도 창이 안 닫히고 멈춰있게 만듭니다.
+            wslInfo.Arguments = $"/c start \"Donkeycar Server\" wsl.exe -d Ubuntu-22.04 -u {linuxUser} bash -c \"{linuxCommand}; exec bash\"";
+
+            wslInfo.UseShellExecute = true;
+            wslInfo.CreateNoWindow = false;
 
             // =================================================================
             // 3 구역: 윈도우 동키카 시뮬레이터 실행 세팅 (유저 선택 경로 반영)
@@ -990,27 +994,27 @@ namespace Donkey_car_manager
             // =================================================================
             try
             {
-                // 1. 리눅스 동키카 파이썬 서버 구동 (Ubuntu-22.04 검은 창이 정상적으로 슥 켜집니다)
+                // 1. 🌟 리눅스 동키카 파이썬 서버 구동 (이제 윈도우 터미널 창이 100% 강제로 튀어나옵니다)
                 Process wslProcess = new Process();
                 wslProcess.StartInfo = wslInfo;
                 wslProcess.Start();
 
-                // 2. 파이썬 웹 소켓 서버가 가상환경 위에서 안착할 수 있도록 1초 대기 시간 조정
-                System.Threading.Thread.Sleep(1000);
+                // 2. 가상환경 레이어가 올라가고 웹 서버 포트가 잡힐 때까지 1.5초 대기
+                System.Threading.Thread.Sleep(1500);
 
                 // 3. 유저가 선택한 유니티 시뮬레이터 프로그램 실행
                 Process simProcess = new Process();
                 simProcess.StartInfo = simInfo;
                 simProcess.Start();
 
-                // 4. 시뮬레이터와 서버가 연동을 완료할 수 있도록 2초 대기
+                // 4. 시뮬레이터와 서버가 웹소켓 결합을 완료할 수 있도록 2초 대기
                 System.Threading.Thread.Sleep(2000);
 
                 // 5. 기본 브라우저를 통해 최종 제어 웹 사이트 오픈
                 string donkeyUrl = "http://localhost:8887";
                 Process.Start(new ProcessStartInfo(donkeyUrl) { UseShellExecute = true });
 
-                MessageBox.Show("동키카 서버(WSL), 시뮬레이터 프로그램, 제어 웹사이트가 성공적으로 연동되었습니다!",
+                MessageBox.Show("동키카 백엔드 서버, 시뮬레이터 프로그램, 제어 웹 브라우저가 모두 정상 기동되었습니다!",
                                 "구동 성공", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             catch (Exception ex)
