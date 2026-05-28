@@ -1007,7 +1007,7 @@ namespace Donkey_car_manager
             string mycarFolder = "mysim";       // 👈 train.py가 들어있는 동키카 프로젝트 폴더명
             string condaPath = $"/home/{linuxUser}/miniconda3";
             string linuxPath = $"/home/{linuxUser}/{mycarFolder}";
-            string modelName = "mypilot.keras";    // 생성될 AI 모델 파일 이름
+            string modelName = "mypilot.h5";    // 생성될 AI 모델 파일 이름
 
             // 학습 데이터 폴더
             string linuxTubPath =
