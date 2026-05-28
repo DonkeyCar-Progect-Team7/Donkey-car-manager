@@ -151,13 +151,6 @@ namespace Donkey_car_manager
             chartDriveData.Visible = true;
             chartDriveData.BringToFront();
 
-            // 더미 데이터 추가 (100개)
-            for (int i = 0; i < 100; i++)
-            {
-                double angle = Math.Sin(i * 0.1) * 0.8;
-                double throttle = 0.5 + 0.5 * Math.Sin(i * 0.07);
-                AddDriveDataToChart(i, angle, throttle);
-            }
         }
 
         private void AddDriveDataToChart(int frameIndex, double angle, double throttle)
@@ -300,6 +293,21 @@ namespace Donkey_car_manager
             using (System.IO.FileStream fs = new System.IO.FileStream(carImages[index].FilePath, System.IO.FileMode.Open, System.IO.FileAccess.Read))
             {
                 picCurFrame.Image = Image.FromStream(fs);
+
+                Random r = new Random();
+
+                double angle =
+                    r.NextDouble() * 2 - 1;
+
+                double throttle =
+                    r.NextDouble();
+
+                AddDriveDataToChart(
+                    chartDriveData.Series["user/angle"].Points.Count,
+                    angle,
+                    throttle);
+
+                chartDriveData.Refresh();
             }
 
             // 🌟 [추가] 트랙바나 자동 재생 시에도 상단 라벨이 "프레임 번호 : X / Y" 형태로 실시간 동기화되도록 설정
@@ -1211,6 +1219,11 @@ namespace Donkey_car_manager
         }
 
         private void dgvDebug_CellContentClick(object sender, DataGridViewCellEventArgs e)
+        {
+
+        }
+
+        private void dgvDebug_CellContentClick_1(object sender, DataGridViewCellEventArgs e)
         {
 
         }

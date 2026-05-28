@@ -238,6 +238,7 @@
             dgvDebug.Name = "dgvDebug";
             dgvDebug.Size = new Size(542, 441);
             dgvDebug.TabIndex = 13;
+            dgvDebug.CellContentClick += dgvDebug_CellContentClick_1;
             // 
             // btnAutoPic
             // 
