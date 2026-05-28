@@ -925,9 +925,8 @@ namespace Donkey_car_manager
         private void btnStartCollection_Click(object sender, EventArgs e)
         {
             // =================================================================
-            // 1 구역: 🌟 유저가 선택한 시뮬레이터(.exe) 경로 유효성 검사 및 확보
+            // 1 구역: 유저가 선택한 시뮬레이터(.exe) 경로 유효성 검사 및 확보
             // =================================================================
-            // 전역 변수(selectedSimFilePath)가 비어있거나, 지정된 경로에 파일이 실제로 없다면 직접 선택창을 띄웁니다.
             if (string.IsNullOrEmpty(selectedSimFilePath) || !System.IO.File.Exists(selectedSimFilePath))
             {
                 MessageBox.Show("동키카 시뮬레이터 파일(donkey_sim.exe)이 아직 지정되지 않았거나 파일을 찾을 수 없습니다.\n시뮬레이터 실행 파일을 먼저 선택해 주세요.",
@@ -941,10 +940,8 @@ namespace Donkey_car_manager
 
                     if (openFileDialog.ShowDialog() == DialogResult.OK)
                     {
-                        // 선택한 경로를 전역 변수와 로컬 변수에 동기화
                         selectedSimFilePath = openFileDialog.FileName;
 
-                        // 기존에 구현해두신 버튼 라벨 연동 반영
                         if (btnSelectSim != null)
                         {
                             btnSelectSim.Text = "시뮬레이터 선택완료";
@@ -960,63 +957,60 @@ namespace Donkey_car_manager
             }
 
             // =================================================================
-            // 2 구역: 리눅스(WSL) 동키카 서버 구동 세팅
+            // 2 구역: 🌟 리눅스(WSL) 동키카 서버 구동 세팅 (배포판 이름 매칭 및 안전장치)
             // =================================================================
             ProcessStartInfo wslInfo = new ProcessStartInfo();
             wslInfo.FileName = "wsl.exe";
 
-            // 기존 코드의 우분투 환경 데이터 보존
+            // 기존 코드의 우분투 환경 데이터 완벽 보존
             string linuxUser = "root";
             string mycarFolder = "mysim";
             string condaPath = "/root/miniconda3";
             string linuxPath = "/root/mysim";
 
             wslInfo.UseShellExecute = true;
-            wslInfo.CreateNoWindow = false;
-            wslInfo.WorkingDirectory = @"\\wsl$\Ubuntu\root\mysim";
+            wslInfo.CreateNoWindow = false; // 리눅스 터미널 창을 눈으로 확인할 수 있게 명시적으로 띄움
+            wslInfo.WorkingDirectory = @"\\wsl$\Ubuntu-22.04\root\mysim"; // 🌟 배포판 명칭 매칭 수정
 
-            // 리눅스 명령어 정제 (동키카 가상환경 활성화 및 드라이브 서버 구동)
+            // 🌟 학습 코드와 일치하도록 배포판 인자를 -d Ubuntu-22.04로 정확히 교정합니다.
+            // 명령어 실행 후 창이 바로 닫히지 않고 오류 로그를 남기도록 '; exec bash'를 끝에 붙여줍니다.
             string linuxCommand = $"cd {linuxPath} && source {condaPath}/bin/activate donkeycar && python3 manage.py drive";
-            wslInfo.Arguments = $"-d Ubuntu -c \"{linuxCommand}\"";
+            wslInfo.Arguments = $"-d Ubuntu-22.04 bash -c \"{linuxCommand}; exec bash\"";
 
             // =================================================================
-            // 3 구역: 🌟 윈도우 동키카 시뮬레이터 실행 세팅 (유저 선택 경로 반영)
+            // 3 구역: 윈도우 동키카 시뮬레이터 실행 세팅 (유저 선택 경로 반영)
             // =================================================================
             ProcessStartInfo simInfo = new ProcessStartInfo();
-
-            // 하드코딩 경로를 완벽히 제거하고, 전역 변수에 저장된 유저 선택 경로를 주입합니다.
             simInfo.FileName = selectedSimFilePath;
-
-            // 시뮬레이터가 자기 폴더 안의 리소스를 정상 참조할 수 있도록 작업 디렉토리 지정
             simInfo.WorkingDirectory = System.IO.Path.GetDirectoryName(selectedSimFilePath);
             simInfo.UseShellExecute = true;
 
             // =================================================================
-            // 4 구역: 프로세스 순차 기동 및 웹 연동 (C# 프리징 차단)
+            // 4 구역: 프로세스 순차 기동 및 웹 연동
             // =================================================================
             try
             {
-                // 1. 리눅스 동키카 파이썬 서버 구동 (C# 스레드를 붙잡지 않고 즉시 리턴됨)
+                // 1. 리눅스 동키카 파이썬 서버 구동 (Ubuntu-22.04 검은 창이 정상적으로 슥 켜집니다)
                 Process wslProcess = new Process();
                 wslProcess.StartInfo = wslInfo;
                 wslProcess.Start();
 
-                // 2. 파이썬 웹 소켓 서버가 기동할 수 있도록 잠깐 대기 (0.5초)
-                System.Threading.Thread.Sleep(500);
+                // 2. 파이썬 웹 소켓 서버가 가상환경 위에서 안착할 수 있도록 1초 대기 시간 조정
+                System.Threading.Thread.Sleep(1000);
 
-                // 3. 🌟 유저가 선택한 경로의 로컬 윈도우 유니티 시뮬레이터 프로그램 실행
+                // 3. 유저가 선택한 유니티 시뮬레이터 프로그램 실행
                 Process simProcess = new Process();
                 simProcess.StartInfo = simInfo;
                 simProcess.Start();
 
-                // 4. 시뮬레이터와 서버가 핸드셰이킹을 완료할 수 있도록 2초 대기
+                // 4. 시뮬레이터와 서버가 연동을 완료할 수 있도록 2초 대기
                 System.Threading.Thread.Sleep(2000);
 
                 // 5. 기본 브라우저를 통해 최종 제어 웹 사이트 오픈
                 string donkeyUrl = "http://localhost:8887";
                 Process.Start(new ProcessStartInfo(donkeyUrl) { UseShellExecute = true });
 
-                MessageBox.Show("동키카 서버, 유저 지정 시뮬레이터 프로그램, 제어 웹사이트가 모두 성공적으로 연동되었습니다!",
+                MessageBox.Show("동키카 서버(WSL), 시뮬레이터 프로그램, 제어 웹사이트가 성공적으로 연동되었습니다!",
                                 "구동 성공", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             catch (Exception ex)
