@@ -32,8 +32,6 @@
             trbFrame = new TrackBar();
             btnFileOpen = new Button();
             lblTitle = new Label();
-            lblAcceleration = new Label();
-            lblSteeringAngle = new Label();
             btnFileDelete = new Button();
             txbFrame = new TextBox();
             btnFrameMove = new Button();
@@ -57,6 +55,7 @@
             txtMyCarFolder = new TextBox();
             pbLearningProgress = new ProgressBar();
             btnSelectSim = new Button();
+            panelRange = new Panel();
             ((System.ComponentModel.ISupportInitialize)trbFrame).BeginInit();
             ((System.ComponentModel.ISupportInitialize)picCurFrame).BeginInit();
             ((System.ComponentModel.ISupportInitialize)dgvDebug).BeginInit();
@@ -100,28 +99,6 @@
             lblTitle.TabIndex = 0;
             lblTitle.Text = "Donkey Car Manager";
             lblTitle.Click += label1_Click;
-            // 
-            // lblAcceleration
-            // 
-            lblAcceleration.AutoSize = true;
-            lblAcceleration.Font = new Font("맑은 고딕", 14.25F);
-            lblAcceleration.ForeColor = Color.Silver;
-            lblAcceleration.Location = new Point(11, 76);
-            lblAcceleration.Name = "lblAcceleration";
-            lblAcceleration.Size = new Size(50, 25);
-            lblAcceleration.TabIndex = 10;
-            lblAcceleration.Text = "속도";
-            // 
-            // lblSteeringAngle
-            // 
-            lblSteeringAngle.AutoSize = true;
-            lblSteeringAngle.Font = new Font("맑은 고딕", 14.25F);
-            lblSteeringAngle.ForeColor = Color.Silver;
-            lblSteeringAngle.Location = new Point(11, 101);
-            lblSteeringAngle.Name = "lblSteeringAngle";
-            lblSteeringAngle.Size = new Size(69, 25);
-            lblSteeringAngle.TabIndex = 11;
-            lblSteeringAngle.Text = "조향각";
             // 
             // btnFileDelete
             // 
@@ -395,12 +372,21 @@
             btnSelectSim.UseVisualStyleBackColor = false;
             btnSelectSim.Click += btnSelectSim_Click;
             // 
+            // panelRange
+            // 
+            panelRange.BackColor = Color.LightSkyBlue;
+            panelRange.Location = new Point(242, 439);
+            panelRange.Name = "panelRange";
+            panelRange.Size = new Size(649, 10);
+            panelRange.TabIndex = 27;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = Color.FromArgb(0, 0, 64);
             ClientSize = new Size(1129, 905);
+            Controls.Add(panelRange);
             Controls.Add(btnSelectSim);
             Controls.Add(pbLearningProgress);
             Controls.Add(txtMyCarFolder);
@@ -413,9 +399,7 @@
             Controls.Add(btnAutoPic);
             Controls.Add(dgvDebug);
             Controls.Add(btnFileMultiDel);
-            Controls.Add(lblSteeringAngle);
             Controls.Add(lblFrameNum);
-            Controls.Add(lblAcceleration);
             Controls.Add(picCurFrame);
             Controls.Add(lblTitle);
             Controls.Add(txbFileNum);
@@ -440,8 +424,6 @@
         private TrackBar trbFrame;
         private Button btnFileOpen;
         private Label lblTitle;
-        private Label lblAcceleration;
-        private Label lblSteeringAngle;
         private Button btnFileDelete;
         private TextBox txbFrame;
         private Button btnFrameMove;
@@ -465,5 +447,6 @@
         private TextBox txtMyCarFolder;
         private ProgressBar pbLearningProgress;
         private Button btnSelectSim;
+        private Panel panelRange;
     }
 }

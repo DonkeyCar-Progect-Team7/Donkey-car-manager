@@ -318,30 +318,90 @@ namespace Donkey_car_manager
             lblFrameNum.Text = $"프레임 번호 : {index + 1} / {carImages.Count}";
         }
 
-        private void trbFrame_MouseDown(object sender, MouseEventArgs e)
+        private int multiStartIndex = -1;
+        private int multiEndIndex = -1;
+
+    
+
+     
+        private void UpdateRangeHighlight()
         {
-            // 마우스 왼쪽 버튼을 클릭했을 때만 작동
-            if (e.Button == MouseButtons.Left)
+            if (multiStartIndex == -1 ||
+                multiEndIndex == -1)
             {
-                // 마우스 클릭 위치(e.X)가 트랙바 전체 가로 크기(Width) 중 어느 정도 비율인지 구합니다.
-                double clickRatio = (double)e.X / (double)trbFrame.Width;
+                panelRange.Visible = false;
+                return;
+            }
 
-                // 트랙바의 총 범위 (최대값 - 최소값)
-                int totalRange = trbFrame.Maximum - trbFrame.Minimum;
+            int start =
+                Math.Min(multiStartIndex, multiEndIndex);
 
-                // 비율에 맞는 새로운 프레임 값 계산
-                int newValue = trbFrame.Minimum + (int)Math.Round(clickRatio * totalRange);
+            int end =
+                Math.Max(multiStartIndex, multiEndIndex);
 
-                // 계산된 값이 범위를 벗어나지 않도록 안전장치 설정
-                if (newValue < trbFrame.Minimum) newValue = trbFrame.Minimum;
-                if (newValue > trbFrame.Maximum) newValue = trbFrame.Maximum;
+            double ratioStart =
+                (double)start / trbFrame.Maximum;
 
-                // 트랙바의 위치를 클릭한 곳으로 변경
-                trbFrame.Value = newValue;
+            double ratioEnd =
+                (double)end / trbFrame.Maximum;
 
-                // 현재 인덱스를 업데이트하고 이미지를 화면에 띄움
-                currentImageIndex = newValue;
-                ShowImage(currentImageIndex);
+            int x1 =
+                trbFrame.Left +
+                (int)(trbFrame.Width * ratioStart);
+
+            int x2 =
+                trbFrame.Left +
+                (int)(trbFrame.Width * ratioEnd);
+
+            panelRange.Top =
+                trbFrame.Top + 8;
+
+            panelRange.Left = x1;
+
+            panelRange.Width =
+                Math.Max(5, x2 - x1);
+
+            panelRange.Height = 6;
+
+            panelRange.Visible = true;
+
+            panelRange.BringToFront();
+
+            
+        }
+
+        private void trbFrame_MouseDown(
+    object sender,
+    MouseEventArgs e)
+        {
+            panelRange.Height = 6;
+            panelRange.BackColor =
+                Color.DeepSkyBlue;
+            panelRange.Visible = false;
+            int newValue =
+                trbFrame.Minimum +
+                (trbFrame.Maximum - trbFrame.Minimum)
+                * e.X / trbFrame.Width;
+
+            trbFrame.Value = Math.Max(
+                trbFrame.Minimum,
+                Math.Min(
+                    trbFrame.Maximum,
+                    newValue));
+
+            if ((ModifierKeys & Keys.Shift)
+                == Keys.Shift)
+            {
+                if (multiStartIndex == -1)
+                {
+                    multiStartIndex = newValue;
+                }
+                else
+                {
+                    multiEndIndex = newValue;
+                }
+
+                UpdateRangeHighlight();
             }
         }
         private void UpdateListPage()
