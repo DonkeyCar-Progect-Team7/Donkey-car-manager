@@ -239,7 +239,7 @@
             // btnAutoPic
             // 
             btnAutoPic.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
-            btnAutoPic.BackColor = Color.Lime;
+            btnAutoPic.BackColor = SystemColors.ControlLight;
             btnAutoPic.FlatStyle = FlatStyle.Flat;
             btnAutoPic.Font = new Font("맑은 고딕", 15.75F);
             btnAutoPic.ForeColor = Color.FromArgb(0, 0, 64);
