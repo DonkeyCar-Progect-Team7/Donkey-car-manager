@@ -13,6 +13,12 @@ namespace Donkey_car_manager
             public string FilePath { get; set; }
             public DateTime WriteTime { get; set; }
         }
+
+        // Designer에 연결된 Load 이벤트 핸들러 (빈 구현)
+        private void Form1_Load(object sender, EventArgs e)
+        {
+            // 필요 시 폼 로드시 초기화 작업을 여기에 추가합니다.
+        }
         //  이 코드를 새로 넣어줍니다.
         private List<CarFileInfo> carImages = new List<CarFileInfo>();
 
@@ -50,53 +56,131 @@ namespace Donkey_car_manager
             System.Reflection.PropertyInfo aProp = typeof(System.Windows.Forms.Control)
                 .GetProperty("DoubleBuffered", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
             aProp.SetValue(picCurFrame, true, null);
+            // Init chart 영역
+            InitDriveChart();
+            // Ensure chart is brought to front after form is shown and report status
+            this.Shown += Form1_Shown;
         }
+        // 동키카 그래프를 위한 코드
+        private Chart chartDriveData; // 전역 변수로 차트 선언
 
-        //여기부터 동키카 그래프를 위한 코드
-        private Chart chartDonkey; // 전역 변수로 차트 선언
-        private void Form1_Load(object sender, EventArgs e)
+        private void InitDriveChart()
         {
-            // 1. 코드로 Chart 컨트롤 동적 생성
-            chartDonkey = new Chart();
+            // Chart 생성
+            chartDriveData = new Chart();
+            chartDriveData.Name = "chartDriveData";
 
-            // 2. 중요: dgvDebug의 위치와 크기, Anchor 속성을 그대로 복사
-            chartDonkey.Location = dgvDebug.Location;
-            chartDonkey.Size = dgvDebug.Size;
-            chartDonkey.Anchor = dgvDebug.Anchor; // 창 크기 조절 대응
-            chartDonkey.Visible = true;
+            // dgvDebug 위치/크기/앵커 그대로 복사
+            if (dgvDebug != null)
+            {
+                chartDriveData.Location = dgvDebug.Location;
+                chartDriveData.Size = dgvDebug.Size;
+                chartDriveData.Anchor = dgvDebug.Anchor;
+            }
 
-            // 3. 기존 dgvDebug는 숨기고, 그 자리에 차트 추가
-            dgvDebug.Visible = false;
-            this.Controls.Add(chartDonkey); // 폼에 차트 장착!
+            // 다크 테마
+            chartDriveData.BackColor = Color.FromArgb(18, 18, 18);
 
-            // --- 여기서부터는 지난번 차트 초기화 세팅 코드 그대로 적용 ---
-            chartDonkey.Series.Clear();
-            chartDonkey.ChartAreas.Clear();
+            // 차트 내부 영역 설정
+            chartDriveData.Series.Clear();
+            chartDriveData.ChartAreas.Clear();
+            chartDriveData.Legends.Clear();
 
-            ChartArea chartArea = new ChartArea("MainArea");
-            chartArea.AxisX.Title = "Time";
-            chartArea.AxisX.MajorGrid.LineColor = Color.LightGray;
+            ChartArea area = new ChartArea("DriveArea");
+            area.BackColor = Color.FromArgb(18, 18, 18);
+            area.AxisX.Title = "프레임 번호";
+            area.AxisX.TitleForeColor = Color.WhiteSmoke;
+            area.AxisX.LabelStyle.ForeColor = Color.LightGray;
+            area.AxisX.MajorGrid.LineColor = Color.FromArgb(60, 60, 60);
+            area.AxisX.LineColor = Color.LightGray;
 
-            chartArea.AxisY.Title = "Value";
-            chartArea.AxisY.Minimum = -1.0;
-            chartArea.AxisY.Maximum = 1.0;
-            chartArea.AxisY.MajorGrid.LineColor = Color.LightGray;
-            chartDonkey.ChartAreas.Add(chartArea);
+            area.AxisY.Title = "값";
+            area.AxisY.TitleForeColor = Color.WhiteSmoke;
+            area.AxisY.LabelStyle.ForeColor = Color.LightGray;
+            area.AxisY.MajorGrid.LineColor = Color.FromArgb(60, 60, 60);
+            area.AxisY.Minimum = -1.0;
+            area.AxisY.Maximum = 1.0;
 
-            // 조향값 선 세팅
-            Series seriesSteer = new Series("Steering");
-            seriesSteer.ChartType = SeriesChartType.Line;
-            seriesSteer.BorderWidth = 2;
-            seriesSteer.Color = Color.Red;
-            chartDonkey.Series.Add(seriesSteer);
+            chartDriveData.ChartAreas.Add(area);
 
-            // 쓰로틀 선 세팅
-            Series seriesThrottle = new Series("Throttle");
-            seriesThrottle.ChartType = SeriesChartType.Line;
-            seriesThrottle.BorderWidth = 2;
-            seriesThrottle.Color = Color.Blue;
-            chartDonkey.Series.Add(seriesThrottle);
+            // Legend
+            Legend legend = new Legend();
+            legend.BackColor = Color.FromArgb(30, 30, 30);
+            legend.ForeColor = Color.WhiteSmoke;
+            chartDriveData.Legends.Add(legend);
+
+            // Series: user/angle (red)
+            Series sAngle = new Series("user/angle");
+            sAngle.ChartType = SeriesChartType.Line;
+            sAngle.Color = Color.Red;
+            sAngle.BorderWidth = 2;
+            sAngle.ChartArea = "DriveArea";
+            sAngle.IsXValueIndexed = true;
+            sAngle.LegendText = "조향각";
+
+            // Series: user/throttle (blue)
+            Series sThrottle = new Series("user/throttle");
+            sThrottle.ChartType = SeriesChartType.Line;
+            sThrottle.Color = Color.Blue;
+            sThrottle.BorderWidth = 2;
+            sThrottle.ChartArea = "DriveArea";
+            sThrottle.IsXValueIndexed = true;
+            sThrottle.LegendText = "속도";
+
+            chartDriveData.Series.Add(sAngle);
+            chartDriveData.Series.Add(sThrottle);
+
+            // 기존 dgvDebug 숨기기
+            if (dgvDebug != null)
+            {
+                dgvDebug.Visible = false;
+                // 폼의 Controls에 남아 있으면 제거하여 차트가 가려지지 않도록 함
+                if (this.Controls.Contains(dgvDebug)) this.Controls.Remove(dgvDebug);
+            }
+
+            // 폼에 차트 추가
+            this.Controls.Add(chartDriveData);
+            chartDriveData.Visible = true;
+            chartDriveData.BringToFront();
+
+            // 더미 데이터 추가 (100개)
+            for (int i = 0; i < 100; i++)
+            {
+                double angle = Math.Sin(i * 0.1) * 0.8;
+                double throttle = 0.5 + 0.5 * Math.Sin(i * 0.07);
+                AddDriveDataToChart(i, angle, throttle);
+            }
         }
+
+        private void AddDriveDataToChart(int frameIndex, double angle, double throttle)
+        {
+            if (chartDriveData == null) return;
+            if (!chartDriveData.Series.IsUniqueName("user/angle") || !chartDriveData.Series.IsUniqueName("user/throttle"))
+            {
+                // 정상적으로 시리즈가 존재하면 추가
+            }
+
+            Series sA = chartDriveData.Series["user/angle"];
+            Series sT = chartDriveData.Series["user/throttle"];
+            sA.Points.AddXY(frameIndex, angle);
+            sT.Points.AddXY(frameIndex, throttle);
+        }
+
+        private void Form1_Shown(object sender, EventArgs e)
+        {
+            if (chartDriveData == null)
+            {
+                MessageBox.Show("chartDriveData == null", "진단");
+            }
+            else
+            {
+                string parentName = chartDriveData.Parent != null ? chartDriveData.Parent.Name : "null";
+                MessageBox.Show($"Visible={chartDriveData.Visible}, Parent={parentName}, Bounds={chartDriveData.Bounds}, InControls={this.Controls.Contains(chartDriveData)}", "진단");
+                chartDriveData.BringToFront();
+                chartDriveData.Refresh();
+            }
+        }
+
         // 4. 폼 로드 이벤트
         /*private void Form1_Load(object sender, EventArgs e)
         {
@@ -998,7 +1082,7 @@ namespace Donkey_car_manager
             // 2. 🌟 윈도우 경로를 WSL 리눅스 경로 형식으로 자동 변환합니다.
             // 예: "C:\donkeycar\mycar\data\tub_1" ➡️ "/mnt/c/donkeycar/mycar/data/tub_1"
             string winPath = currentSelectedFolderPath;
-          
+
 
             // 혹시 D드라이브도 쓰신다면 .Replace("D:", "/mnt/d") 등 추가 가능
 
@@ -1046,7 +1130,10 @@ namespace Donkey_car_manager
 
             }
         }
-                
-        
+
+        private void dgvDebug_CellContentClick(object sender, DataGridViewCellEventArgs e)
+        {
+
+        }
     }
 }
