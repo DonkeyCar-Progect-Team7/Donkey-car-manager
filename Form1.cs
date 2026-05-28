@@ -13,6 +13,8 @@ namespace Donkey_car_manager
         private const int EM_SETCUEBANNER = 0x1501;
         // 🌟 현재 사용자가 파일 열기로 연 폴더의 윈도우 절대 경로를 기억할 변수
         private string currentSelectedFolderPath = string.Empty;
+        // 🌟 선택된 윈도우 동키카 시뮬레이터 파일(.exe)의 절대 경로를 기억할 변수
+        private string selectedSimFilePath = string.Empty;
         public class CarFileInfo
         {
             public string FilePath { get; set; }
@@ -920,11 +922,18 @@ namespace Donkey_car_manager
         }
         private void btnStartCollection_Click(object sender, EventArgs e)
         {
-            // 🌟 [보수적 반영] 하드코딩 대신 사용자가 입력창(TextBox)에 적은 값을 실시간으로 가져옵니다.
+            // 🌟 [안전장치] 시뮬레이터 파일을 먼저 선택하지 않고 버튼을 눌렀을 때 차단
+            if (string.IsNullOrEmpty(selectedSimFilePath))
+            {
+                MessageBox.Show("먼저 [시뮬레이터 파일 선택] 버튼을 통해 'donkey_sim.exe' 파일 경로를 지정해 주세요.",
+                                "시뮬레이터 경로 누락", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            // 사용자가 UI 입력창(TextBox)에 적은 환경 세팅값을 가져옵니다.
             string linuxUser = txtLinuxUser.Text.Trim();
             string mycarFolder = txtMyCarFolder.Text.Trim();
 
-            // 🌟 [안전장치] 유저가 값을 비워두고 버튼을 눌렀을 때 터미널 에러가 나는 것을 방지
             if (string.IsNullOrEmpty(linuxUser) || string.IsNullOrEmpty(mycarFolder))
             {
                 MessageBox.Show("우분투 사용자명과 동키카 폴더명을 정확히 입력해 주세요.",
@@ -950,10 +959,13 @@ namespace Donkey_car_manager
             wslInfo.CreateNoWindow = false;
 
             // =================================================================
-            // 2 구역: 윈도우 동키카 시뮬레이터 프로그램 구동 세팅
+            // 2 구역: 윈도우 동키카 시뮬레이터 프로그램 구동 세팅 (하드코딩 제거 버전)
             // =================================================================
             ProcessStartInfo simInfo = new ProcessStartInfo();
-            simInfo.FileName = @"C:\donkey_sim\donkey_sim.exe";  // 시뮬레이터 절대경로
+
+            // 🌟 하드코딩 주소를 지우고 사용자가 직접 탐색기로 선택한 절대 경로 변수를 대입합니다.
+            simInfo.FileName = selectedSimFilePath;
+
             simInfo.UseShellExecute = true;
             simInfo.CreateNoWindow = false;
 
@@ -971,10 +983,10 @@ namespace Donkey_car_manager
                 // 1. 리눅스 구동 명령 우선 실행
                 wslProcess.Start();
 
-                // 2. 리눅스 서버 켜지는 속도 대기 (과부하 방지 잠시 대기 후 시뮬레이터 가동)
-                Thread.Sleep(1500);
+                // 2. 리눅스 서버가 켜지는 속도 대기
+                System.Threading.Thread.Sleep(1500);
 
-                // 3. 윈도우 시뮬레이터 프로그램 실행
+                // 3. 사용자가 지정한 경로의 윈도우 시뮬레이터 프로그램 실행
                 simProcess.Start();
             }
             catch (Exception ex)
@@ -1226,6 +1238,28 @@ namespace Donkey_car_manager
         private void dgvDebug_CellContentClick_1(object sender, DataGridViewCellEventArgs e)
         {
 
+        }
+
+        private void btnSelectSim_Click(object sender, EventArgs e)
+        {
+            using (OpenFileDialog openFileDialog = new OpenFileDialog())
+            {
+                openFileDialog.Title = "동키카 시뮬레이터 실행 파일(donkey_sim.exe)을 선택해 주세요";
+                openFileDialog.Filter = "실행 파일 (*.exe)|*.exe|모든 파일 (*.*)|*.*";
+                openFileDialog.InitialDirectory = @"C:\"; // 기본 시작 위치
+
+                if (openFileDialog.ShowDialog() == DialogResult.OK)
+                {
+                    // 선택한 파일의 절대 경로를 전역 변수에 저장
+                    selectedSimFilePath = openFileDialog.FileName;
+
+                    // 유저가 직관적으로 확인하도록 버튼 텍스트를 파일명으로 변경 (라벨 대용)
+                    btnSelectSim.Text = "시뮬레이터 선택완료";
+                    btnSelectSim.ForeColor = Color.Blue; // 선택 완료 표시
+
+                    MessageBox.Show($"시뮬레이터 경로가 지정되었습니다:\n{selectedSimFilePath}", "경로 지정 완료", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            }
         }
     }
 }

@@ -56,6 +56,7 @@
             txtLinuxUser = new TextBox();
             txtMyCarFolder = new TextBox();
             pbLearningProgress = new ProgressBar();
+            btnSelectSim = new Button();
             ((System.ComponentModel.ISupportInitialize)trbFrame).BeginInit();
             ((System.ComponentModel.ISupportInitialize)picCurFrame).BeginInit();
             ((System.ComponentModel.ISupportInitialize)dgvDebug).BeginInit();
@@ -322,11 +323,11 @@
             btnStartCollection.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
             btnStartCollection.BackColor = Color.Lime;
             btnStartCollection.FlatStyle = FlatStyle.Flat;
-            btnStartCollection.Font = new Font("맑은 고딕", 15.75F);
+            btnStartCollection.Font = new Font("맑은 고딕", 11.25F, FontStyle.Regular, GraphicsUnit.Point, 129);
             btnStartCollection.ForeColor = Color.FromArgb(0, 0, 64);
             btnStartCollection.Location = new Point(11, 241);
             btnStartCollection.Name = "btnStartCollection";
-            btnStartCollection.Size = new Size(211, 51);
+            btnStartCollection.Size = new Size(98, 51);
             btnStartCollection.TabIndex = 1;
             btnStartCollection.Text = "시뮬레이터 실행";
             btnStartCollection.UseVisualStyleBackColor = false;
@@ -352,7 +353,7 @@
             txtLinuxUser.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
             txtLinuxUser.Font = new Font("맑은 고딕", 14.25F, FontStyle.Regular, GraphicsUnit.Point, 129);
             txtLinuxUser.ForeColor = SystemColors.ActiveBorder;
-            txtLinuxUser.Location = new Point(12, 202);
+            txtLinuxUser.Location = new Point(11, 202);
             txtLinuxUser.Name = "txtLinuxUser";
             txtLinuxUser.Size = new Size(210, 33);
             txtLinuxUser.TabIndex = 23;
@@ -379,12 +380,28 @@
             pbLearningProgress.Style = ProgressBarStyle.Continuous;
             pbLearningProgress.TabIndex = 25;
             // 
+            // btnSelectSim
+            // 
+            btnSelectSim.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+            btnSelectSim.BackColor = Color.Lime;
+            btnSelectSim.FlatStyle = FlatStyle.Flat;
+            btnSelectSim.Font = new Font("맑은 고딕", 11.25F, FontStyle.Regular, GraphicsUnit.Point, 129);
+            btnSelectSim.ForeColor = Color.FromArgb(0, 0, 64);
+            btnSelectSim.Location = new Point(115, 241);
+            btnSelectSim.Name = "btnSelectSim";
+            btnSelectSim.Size = new Size(106, 51);
+            btnSelectSim.TabIndex = 26;
+            btnSelectSim.Text = "시뮬레이터 파일선택";
+            btnSelectSim.UseVisualStyleBackColor = false;
+            btnSelectSim.Click += btnSelectSim_Click;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = Color.FromArgb(0, 0, 64);
             ClientSize = new Size(1129, 905);
+            Controls.Add(btnSelectSim);
             Controls.Add(pbLearningProgress);
             Controls.Add(txtMyCarFolder);
             Controls.Add(txtLinuxUser);
@@ -447,5 +464,6 @@
         private TextBox txtLinuxUser;
         private TextBox txtMyCarFolder;
         private ProgressBar pbLearningProgress;
+        private Button btnSelectSim;
     }
 }
