@@ -925,19 +925,52 @@ namespace Donkey_car_manager
         private void btnStartCollection_Click(object sender, EventArgs e)
         {
             // =================================================================
-            // 1 구역: 리눅스(WSL) 동키카 서버 구동 세팅
+            // 1 구역: 🌟 유저가 선택한 시뮬레이터(.exe) 경로 유효성 검사 및 확보
+            // =================================================================
+            // 전역 변수(selectedSimFilePath)가 비어있거나, 지정된 경로에 파일이 실제로 없다면 직접 선택창을 띄웁니다.
+            if (string.IsNullOrEmpty(selectedSimFilePath) || !System.IO.File.Exists(selectedSimFilePath))
+            {
+                MessageBox.Show("동키카 시뮬레이터 파일(donkey_sim.exe)이 아직 지정되지 않았거나 파일을 찾을 수 없습니다.\n시뮬레이터 실행 파일을 먼저 선택해 주세요.",
+                                "시뮬레이터 지정 필요", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+
+                using (OpenFileDialog openFileDialog = new OpenFileDialog())
+                {
+                    openFileDialog.Title = "동키카 시뮬레이터 실행 파일(donkey_sim.exe)을 선택해 주세요";
+                    openFileDialog.Filter = "실행 파일 (*.exe)|*.exe|모든 파일 (*.*)|*.*";
+                    openFileDialog.InitialDirectory = @"C:\";
+
+                    if (openFileDialog.ShowDialog() == DialogResult.OK)
+                    {
+                        // 선택한 경로를 전역 변수와 로컬 변수에 동기화
+                        selectedSimFilePath = openFileDialog.FileName;
+
+                        // 기존에 구현해두신 버튼 라벨 연동 반영
+                        if (btnSelectSim != null)
+                        {
+                            btnSelectSim.Text = "시뮬레이터 선택완료";
+                            btnSelectSim.ForeColor = Color.Blue;
+                        }
+                    }
+                    else
+                    {
+                        MessageBox.Show("시뮬레이터 프로그램이 선택되지 않아 구동을 취소합니다.", "알림", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        return;
+                    }
+                }
+            }
+
+            // =================================================================
+            // 2 구역: 리눅스(WSL) 동키카 서버 구동 세팅
             // =================================================================
             ProcessStartInfo wslInfo = new ProcessStartInfo();
             wslInfo.FileName = "wsl.exe";
 
-            // 고정 데이터 보존
+            // 기존 코드의 우분투 환경 데이터 보존
             string linuxUser = "root";
             string mycarFolder = "mysim";
             string condaPath = "/root/miniconda3";
             string linuxPath = "/root/mysim";
 
-            // 🌟 윈도우 프로세스를 블로킹하지 않도록 UseShellExecute를 true로 설정하고, 
-            // 별도의 백그라운드 창에서 리눅스 서버가 독자적으로 돌도록 안전하게 분리합니다.
             wslInfo.UseShellExecute = true;
             wslInfo.CreateNoWindow = false;
             wslInfo.WorkingDirectory = @"\\wsl$\Ubuntu\root\mysim";
@@ -947,46 +980,43 @@ namespace Donkey_car_manager
             wslInfo.Arguments = $"-d Ubuntu -c \"{linuxCommand}\"";
 
             // =================================================================
-            // 2 구역: 🌟 윈도우 동키카 시뮬레이터(Donkeycar Sim.exe) 실행 세팅
+            // 3 구역: 🌟 윈도우 동키카 시뮬레이터 실행 세팅 (유저 선택 경로 반영)
             // =================================================================
             ProcessStartInfo simInfo = new ProcessStartInfo();
 
-            // 사용중이신 로컬 PC의 시뮬레이터 절대 경로
-            simInfo.FileName = @"D:\Nothings\DonkeySimWin\DonkeySimWin\donkey_sim.exe";
+            // 하드코딩 경로를 완벽히 제거하고, 전역 변수에 저장된 유저 선택 경로를 주입합니다.
+            simInfo.FileName = selectedSimFilePath;
 
-            // 시뮬레이터가 실행될 때 자기 폴더 안의 리소스를 정상적으로 참조할 수 있도록 작업 디렉토리 필수 지정
-            if (System.IO.Directory.Exists(System.IO.Path.GetDirectoryName(simInfo.FileName)))
-            {
-                simInfo.WorkingDirectory = System.IO.Path.GetDirectoryName(simInfo.FileName);
-            }
+            // 시뮬레이터가 자기 폴더 안의 리소스를 정상 참조할 수 있도록 작업 디렉토리 지정
+            simInfo.WorkingDirectory = System.IO.Path.GetDirectoryName(selectedSimFilePath);
             simInfo.UseShellExecute = true;
 
             // =================================================================
-            // 3 구역: 차례대로 멈춤 없이 실행하기 (프로세스 순차 기동 로직)
+            // 4 구역: 프로세스 순차 기동 및 웹 연동 (C# 프리징 차단)
             // =================================================================
             try
             {
-                // 1. 리눅스 동키카 파이썬 서버 구동 (이제 C# 스레드를 붙잡지 않고 즉시 넘어갑니다)
+                // 1. 리눅스 동키카 파이썬 서버 구동 (C# 스레드를 붙잡지 않고 즉시 리턴됨)
                 Process wslProcess = new Process();
                 wslProcess.StartInfo = wslInfo;
                 wslProcess.Start();
 
-                // 2. 파이썬 웹 소켓 서버가 최소한 기동될 수 있도록 아주 잠깐 대기 (0.5초)
+                // 2. 파이썬 웹 소켓 서버가 기동할 수 있도록 잠깐 대기 (0.5초)
                 System.Threading.Thread.Sleep(500);
 
-                // 3. 🌟 [정상화 핵심] 로컬 윈도우 유니티 시뮬레이터 프로그램 실행
+                // 3. 🌟 유저가 선택한 경로의 로컬 윈도우 유니티 시뮬레이터 프로그램 실행
                 Process simProcess = new Process();
                 simProcess.StartInfo = simInfo;
                 simProcess.Start();
 
-                // 4. 시뮬레이터와 서버가 웹 핸드셰이킹을 완료할 수 있도록 1.5초 대기
-                System.Threading.Thread.Sleep(1500);
+                // 4. 시뮬레이터와 서버가 핸드셰이킹을 완료할 수 있도록 2초 대기
+                System.Threading.Thread.Sleep(2000);
 
                 // 5. 기본 브라우저를 통해 최종 제어 웹 사이트 오픈
                 string donkeyUrl = "http://localhost:8887";
                 Process.Start(new ProcessStartInfo(donkeyUrl) { UseShellExecute = true });
 
-                MessageBox.Show("동키카 서버, 로컬 시뮬레이터 프로그램, 제어 웹사이트가 모두 성공적으로 연동되었습니다!",
+                MessageBox.Show("동키카 서버, 유저 지정 시뮬레이터 프로그램, 제어 웹사이트가 모두 성공적으로 연동되었습니다!",
                                 "구동 성공", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             catch (Exception ex)
