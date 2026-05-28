@@ -2,10 +2,15 @@ using System.Diagnostics;
 using System.Windows.Forms.DataVisualization.Charting;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 using System.Windows.Forms.DataVisualization.Charting;
+using System.Runtime.InteropServices;
+
 namespace Donkey_car_manager
 {
     public partial class Form1 : Form
     {
+        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+        private static extern Int32 SendMessage(IntPtr hWnd, int msg, int wParam, [MarshalAs(UnmanagedType.LPWStr)] string lParam);
+        private const int EM_SETCUEBANNER = 0x1501;
         // 🌟 현재 사용자가 파일 열기로 연 폴더의 윈도우 절대 경로를 기억할 변수
         private string currentSelectedFolderPath = string.Empty;
         public class CarFileInfo
@@ -15,9 +20,12 @@ namespace Donkey_car_manager
         }
 
         // Designer에 연결된 Load 이벤트 핸들러 (빈 구현)
-        private void Form1_Load(object sender, EventArgs e)
+        // Designer에 연결된 Load 이벤트 핸들러
+        private void Form1_Load(object sender, EventArgs e) // 기존 코드
         {
-            // 필요 시 폼 로드시 초기화 작업을 여기에 추가합니다.
+            // 🌟 [추가] 텍스트박스 클릭 시 사라지는 회색 워터마크 힌트 텍스트 설정
+            SendMessage(txtLinuxUser.Handle, EM_SETCUEBANNER, 0, "우분투 사용자명");
+            SendMessage(txtMyCarFolder.Handle, EM_SETCUEBANNER, 0, "동키카 폴더명");
         }
         //  이 코드를 새로 넣어줍니다.
         private List<CarFileInfo> carImages = new List<CarFileInfo>();
@@ -904,67 +912,66 @@ namespace Donkey_car_manager
         }
         private void btnStartCollection_Click(object sender, EventArgs e)
         {
+            // 🌟 [보수적 반영] 하드코딩 대신 사용자가 입력창(TextBox)에 적은 값을 실시간으로 가져옵니다.
+            string linuxUser = txtLinuxUser.Text.Trim();
+            string mycarFolder = txtMyCarFolder.Text.Trim();
+
+            // 🌟 [안전장치] 유저가 값을 비워두고 버튼을 눌렀을 때 터미널 에러가 나는 것을 방지
+            if (string.IsNullOrEmpty(linuxUser) || string.IsNullOrEmpty(mycarFolder))
+            {
+                MessageBox.Show("우분투 사용자명과 동키카 폴더명을 정확히 입력해 주세요.",
+                                "설정 입력 누락", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
             // =================================================================
             // 1 구역: 리눅스(WSL) 동키카 서버 구동 세팅
             // =================================================================
             ProcessStartInfo wslInfo = new ProcessStartInfo();
             wslInfo.FileName = "wsl.exe";
 
-            string linuxUser = "root";       // 👈 본인의 우분투 사용자 이름
-            string mycarFolder = "mysim";       // 👈 동키카 프로젝트 폴더
-            string condaPath = "/root/miniconda3";
-            string linuxPath = "/root/mysim";
+            // 텍스트박스 기반으로 가변 경로 조립
+            string condaPath = $"/home/{linuxUser}/miniconda3";
+            string linuxPath = $"/home/{linuxUser}/{mycarFolder}";
 
-            wslInfo.WorkingDirectory = @"\\wsl$\Ubuntu\root\mysim";
-            string linuxCommand = $"cd /root/mysim && source /root/miniconda3/bin/activate donkeycar && python3 manage.py drive";
-            wslInfo.Arguments = "-e bash -ic \"conda activate e2e_env && cd ~/mysim && python3 manage.py drive; exec bash\"";
+            wslInfo.WorkingDirectory = $@"\\wsl$\Ubuntu-22.04{linuxPath.Replace("/", @"\")}";
+            string linuxCommand = $"cd {linuxPath} && source {condaPath}/bin/activate donkeycar && python3 manage.py drive";
+            wslInfo.Arguments = $"-d Ubuntu-22.04 bash -c \"{linuxCommand}; exec bash\"";
 
-            wslInfo.UseShellExecute = false;
-            wslInfo.RedirectStandardOutput = true;
-            wslInfo.RedirectStandardError = false;
+            wslInfo.UseShellExecute = true;
             wslInfo.CreateNoWindow = false;
 
             // =================================================================
-            // 2 구역: 🌟 윈도우 동키카 시뮬레이터(Donkeycar Sim.exe) 실행 세팅
+            // 2 구역: 윈도우 동키카 시뮬레이터 프로그램 구동 세팅
             // =================================================================
             ProcessStartInfo simInfo = new ProcessStartInfo();
-
-            // 👈 본인의 컴퓨터에 'Donkeycar Sim.exe'가 설치된 실제 윈도우 절대 경로를 적어주세요!
-            simInfo.FileName = @"D:\Nothings\DonkeySimWin\DonkeySimWin\donkey_sim.exe";
-
-            // 시뮬레이터가 실행될 때 자기 폴더 안의 리소스를 정상적으로 참조할 수 있도록 작업 디렉토리 설정
-            simInfo.WorkingDirectory = System.IO.Path.GetDirectoryName(simInfo.FileName);
+            simInfo.FileName = @"C:\donkey_sim\donkey_sim.exe";  // 시뮬레이터 절대경로
             simInfo.UseShellExecute = true;
+            simInfo.CreateNoWindow = false;
 
             // =================================================================
-            // 3 구역: 차례대로 실행하기 (프로세스 기동)
+            // 3 구역: 프로세스 순차 실행 기동 로직
             // =================================================================
+            Process wslProcess = new Process();
+            wslProcess.StartInfo = wslInfo;
+
+            Process simProcess = new Process();
+            simProcess.StartInfo = simInfo;
+
             try
             {
-                // 1. 리눅스 동키카 파이썬 서버 실행
-                Process wslProcess = new Process();
-                wslProcess.StartInfo = wslInfo;
+                // 1. 리눅스 구동 명령 우선 실행
                 wslProcess.Start();
 
-                // 2. 🌟 윈도우 유니티 시뮬레이터 프로그램 실행
-                Process simProcess = new Process();
-                simProcess.StartInfo = simInfo;
+                // 2. 리눅스 서버 켜지는 속도 대기 (과부하 방지 잠시 대기 후 시뮬레이터 가동)
+                Thread.Sleep(1500);
+
+                // 3. 윈도우 시뮬레이터 프로그램 실행
                 simProcess.Start();
-
-                // 3. 약간의 딜레이(예: 1.5초) 후 웹 브라우저 조종창 오픈 
-                // (서버와 시뮬레이터가 켜질 시간을 아주 잠깐 주는 것이 안전합니다)
-                System.Threading.Thread.Sleep(1500);
-
-                string donkeyUrl = "http://localhost:8887";
-                Process.Start(new ProcessStartInfo(donkeyUrl) { UseShellExecute = true });
-
-                MessageBox.Show("동키카 서버, 시뮬레이터 프로그램, 제어 웹사이트가 모두 연동되어 실행되었습니다!",
-                                "올인원 구동 성공", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"올인원 실행 중 오류가 발생했습니다:\n{ex.Message}", "오류",
-                                MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"시뮬레이터 구동 중 에러가 발생했습니다:\n{ex.Message}", "오류", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
         // WinForm에서 '수집 시작' 버튼 클릭 시
@@ -1079,55 +1086,127 @@ namespace Donkey_car_manager
                 return;
             }
 
-            // 2. 🌟 윈도우 경로를 WSL 리눅스 경로 형식으로 자동 변환합니다.
-            // 예: "C:\donkeycar\mycar\data\tub_1" ➡️ "/mnt/c/donkeycar/mycar/data/tub_1"
+            // 사용자가 UI 입력창(TextBox)에 적은 환경 세팅값을 가져옵니다.
+            string linuxUser = txtLinuxUser.Text.Trim();
+            string mycarFolder = txtMyCarFolder.Text.Trim();
+
+            // 안전장치: 유저가 설정을 비워두고 버튼을 눌렀을 때 터미널 에러가 나는 것을 방지
+            if (string.IsNullOrEmpty(linuxUser) || string.IsNullOrEmpty(mycarFolder))
+            {
+                MessageBox.Show("우분투 사용자명과 동키카 폴더명을 정확히 입력해 주세요.",
+                                "설정 입력 누락", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            // 2. 윈도우 경로 저장
             string winPath = currentSelectedFolderPath;
 
-
-            // 혹시 D드라이브도 쓰신다면 .Replace("D:", "/mnt/d") 등 추가 가능
-
-            // 3. 본인의 우분투 환경 설정값
-            string linuxUser = "leetjdgus";       // 👈 본인의 우분투 사용자 이름
-            string mycarFolder = "mysim";       // 👈 train.py가 들어있는 동키카 프로젝트 폴더명
+            // 3. 본인의 우분투 환경 설정값 (동적 조립)
             string condaPath = $"/home/{linuxUser}/miniconda3";
             string linuxPath = $"/home/{linuxUser}/{mycarFolder}";
             string modelName = "mypilot.h5";    // 생성될 AI 모델 파일 이름
 
-            // 학습 데이터 폴더
-            string linuxTubPath =
-                $"/home/{linuxUser}/{mycarFolder}/data";
+            // 학습 데이터 폴더 경로
+            string linuxTubPath = $"/home/{linuxUser}/{mycarFolder}/data";
 
-            // 4. 🌟 변환된 리눅스 튜브 경로(linuxTubPath)를 --tub= 뒤에 그대로 주입합니다!
+            // 4. 🌟 파이썬 출력이 실시간으로 C#으로 전달되도록 python3 뒤에 '-u' 옵션을 추가하여 조립합니다.
             string linuxCommand =
                 $"cd {linuxPath} && " +
                 $"source {condaPath}/bin/activate e2e_env && " +
-                $"python3 train.py " +
+                $"python3 -u train.py " +
                 $"--tubs {linuxTubPath} " +
                 $" --model ./models/{modelName}";
 
-            // 5. 프로세스 실행 설정 (우분투 터미널 창을 직접 띄움)
+            // 5. 📊 프로그레스 바 게이지 리셋
+            pbLearningProgress.Value = 0;
+
+            // 6. 프로세스 실행 설정 (🌟 핵심: 외부에 독립된 우분투 창을 띄우지 않고 화면 뒤에서 실행)
             ProcessStartInfo startInfo = new ProcessStartInfo();
             startInfo.FileName = "wsl.exe";
-            startInfo.Arguments =
-                $"-d Ubuntu-22.04 bash -c \"{linuxCommand}; exec bash\"";
-            startInfo.UseShellExecute = true;
-            startInfo.CreateNoWindow = false;
+            startInfo.Arguments = $"-d Ubuntu-22.04 bash -c \"{linuxCommand}\"";
+
+            startInfo.UseShellExecute = false;          // 🌟 출력을 리다이렉트하기 위해 false 필수
+            startInfo.RedirectStandardOutput = true;    // 🌟 표준 출력(로그, 진행도) 가로채기 활성화
+            startInfo.RedirectStandardError = true;     // 🌟 에러 출력 가로채기 활성화
+            startInfo.CreateNoWindow = true;            // 🌟 백그라운드 구동을 위해 새 검은색 터미널 창 숨김
 
             Process trainProcess = new Process();
             trainProcess.StartInfo = startInfo;
+            trainProcess.EnableRaisingEvents = true;    // 프로세스 종료(Exited) 이벤트를 감지하기 위해 활성화
+
+            // 7. 🌟 [비동기 데이터 수신 이벤트] 리눅스가 글자를 출력할 때마다 실시간 백그라운드 파싱
+            trainProcess.OutputDataReceived += (s, args) =>
+            {
+                if (args.Data != null)
+                {
+                    // 백그라운드 스레드에서 메인 UI 컨트롤을 안전하게 제어하기 위해 BeginInvoke 사용
+                    this.BeginInvoke(new Action(() =>
+                    {
+                        // 📊 [게이지 바 채우기 파싱 엔진] "Epoch 5/20" 문자열을 감지하여 퍼센트 계산
+                        if (args.Data.Contains("Epoch") && args.Data.Contains("/"))
+                        {
+                            try
+                            {
+                                // 문장 정제: "Epoch 5/20"에서 필요한 숫자 부분만 분리
+                                string cleanData = args.Data.Replace("Epoch", "").Trim(); // 예: "5/20"
+                                string[] epochParts = cleanData.Split(' ')[0].Split('/'); // ["5", "20"]
+
+                                if (epochParts.Length == 2)
+                                {
+                                    int currentEpoch = int.Parse(epochParts[0]); // 현재 회차 (5)
+                                    int totalEpochs = int.Parse(epochParts[1]);  // 총 회차 (20)
+
+                                    // 진행률 백분율 계산 ( (5 / 20) * 100 = 25% )
+                                    int percent = (int)(((double)currentEpoch / totalEpochs) * 100);
+
+                                    // 계산된 퍼센트 수치로 프로그레스 바 채우기 (안전 범위 검증)
+                                    if (percent >= 0 && percent <= 100)
+                                    {
+                                        pbLearningProgress.Value = percent;
+                                    }
+                                }
+                            }
+                            catch
+                            {
+                                // 파싱 예외 상황으로 인해 프로그램이 튕기지 않도록 차단
+                            }
+                        }
+                    }));
+                }
+            };
+
+            // 8. 🌟 [학습 최종 완료 이벤트] AI 학습이 끝났을 때 실행
+            trainProcess.Exited += (s, args) =>
+            {
+                this.BeginInvoke(new Action(() =>
+                {
+                    // 완료 상태 동기화: 게이지 바를 100% 가득 찬 상태로 이쁘게 갱신
+                    pbLearningProgress.Value = 100;
+
+                    // UI 화면에 완료 알림 창 띄우기
+                    MessageBox.Show("동키카 AI 모델 학습이 성공적으로 완료되었습니다!", "학습 완료", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }));
+                trainProcess.Dispose();
+            };
 
             try
             {
-                DialogResult confirm = MessageBox.Show(
-                   $"실행 명령:\n\n{linuxCommand}");
+                // 9. 학습 시작 최종 확인 다이얼로그
+                DialogResult confirm = MessageBox.Show($"위 설정으로 백그라운드 AI 학습을 시작하시겠습니까?", "학습 시작 확인", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
 
-                trainProcess.Start();
+                if (confirm == DialogResult.Yes)
+                {
+                    // 백그라운드 리눅스 프로세스 기동
+                    trainProcess.Start();
+
+                    // 비동기 텍스트 가로채기 스트림 동작 시작
+                    trainProcess.BeginOutputReadLine();
+                    trainProcess.BeginErrorReadLine();
+                }
             }
             catch (Exception ex)
             {
-                MessageBox.Show(
-                    ex.Message);
-
+                MessageBox.Show($"학습 프로세스 실행 중 에러가 발생했습니다:\n{ex.Message}", "오류", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 

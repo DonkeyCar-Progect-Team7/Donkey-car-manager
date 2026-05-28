@@ -53,6 +53,9 @@
             colTime = new ColumnHeader();
             btnStartCollection = new Button();
             btnStartLearning = new Button();
+            txtLinuxUser = new TextBox();
+            txtMyCarFolder = new TextBox();
+            pbLearningProgress = new ProgressBar();
             ((System.ComponentModel.ISupportInitialize)trbFrame).BeginInit();
             ((System.ComponentModel.ISupportInitialize)picCurFrame).BeginInit();
             ((System.ComponentModel.ISupportInitialize)dgvDebug).BeginInit();
@@ -62,10 +65,10 @@
             // 
             trbFrame.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             trbFrame.LargeChange = 1;
-            trbFrame.Location = new Point(229, 460);
+            trbFrame.Location = new Point(229, 404);
             trbFrame.Maximum = 10000;
             trbFrame.Name = "trbFrame";
-            trbFrame.Size = new Size(728, 45);
+            trbFrame.Size = new Size(668, 45);
             trbFrame.TabIndex = 5;
             trbFrame.Scroll += trbFrame_Scroll;
             trbFrame.MouseDown += trbFrame_MouseDown;
@@ -77,7 +80,7 @@
             btnFileOpen.FlatStyle = FlatStyle.Flat;
             btnFileOpen.Font = new Font("맑은 고딕", 15.75F);
             btnFileOpen.ForeColor = Color.FromArgb(0, 0, 64);
-            btnFileOpen.Location = new Point(973, 312);
+            btnFileOpen.Location = new Point(908, 269);
             btnFileOpen.Name = "btnFileOpen";
             btnFileOpen.Size = new Size(211, 51);
             btnFileOpen.TabIndex = 9;
@@ -126,7 +129,7 @@
             btnFileDelete.FlatStyle = FlatStyle.Flat;
             btnFileDelete.Font = new Font("맑은 고딕", 15.75F);
             btnFileDelete.ForeColor = Color.White;
-            btnFileDelete.Location = new Point(973, 369);
+            btnFileDelete.Location = new Point(908, 326);
             btnFileDelete.Name = "btnFileDelete";
             btnFileDelete.Size = new Size(211, 51);
             btnFileDelete.TabIndex = 10;
@@ -140,7 +143,7 @@
             txbFrame.BackColor = Color.LightSteelBlue;
             txbFrame.BorderStyle = BorderStyle.FixedSingle;
             txbFrame.Font = new Font("맑은 고딕", 12F, FontStyle.Regular, GraphicsUnit.Point, 129);
-            txbFrame.Location = new Point(968, 12);
+            txbFrame.Location = new Point(908, 12);
             txbFrame.Name = "txbFrame";
             txbFrame.Size = new Size(123, 29);
             txbFrame.TabIndex = 6;
@@ -154,7 +157,7 @@
             btnFrameMove.FlatStyle = FlatStyle.Flat;
             btnFrameMove.Font = new Font("맑은 고딕", 8.25F, FontStyle.Regular, GraphicsUnit.Point, 129);
             btnFrameMove.ForeColor = Color.FromArgb(0, 0, 64);
-            btnFrameMove.Location = new Point(1097, 12);
+            btnFrameMove.Location = new Point(1037, 12);
             btnFrameMove.Name = "btnFrameMove";
             btnFrameMove.Size = new Size(87, 29);
             btnFrameMove.TabIndex = 7;
@@ -169,7 +172,7 @@
             lblCurFilePage.BackColor = Color.LightSteelBlue;
             lblCurFilePage.Font = new Font("맑은 고딕", 14.25F, FontStyle.Regular, GraphicsUnit.Point, 129);
             lblCurFilePage.ForeColor = Color.FromArgb(0, 0, 64);
-            lblCurFilePage.Location = new Point(11, 458);
+            lblCurFilePage.Location = new Point(11, 402);
             lblCurFilePage.Name = "lblCurFilePage";
             lblCurFilePage.Size = new Size(114, 25);
             lblCurFilePage.TabIndex = 15;
@@ -181,7 +184,7 @@
             txbFileNum.BackColor = Color.LightSteelBlue;
             txbFileNum.BorderStyle = BorderStyle.FixedSingle;
             txbFileNum.Font = new Font("맑은 고딕", 14.25F, FontStyle.Regular, GraphicsUnit.Point, 129);
-            txbFileNum.Location = new Point(133, 455);
+            txbFileNum.Location = new Point(133, 399);
             txbFileNum.Name = "txbFileNum";
             txbFileNum.Size = new Size(90, 33);
             txbFileNum.TabIndex = 4;
@@ -193,7 +196,7 @@
             picCurFrame.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             picCurFrame.Location = new Point(234, 12);
             picCurFrame.Name = "picCurFrame";
-            picCurFrame.Size = new Size(728, 442);
+            picCurFrame.Size = new Size(668, 386);
             picCurFrame.SizeMode = PictureBoxSizeMode.Zoom;
             picCurFrame.TabIndex = 0;
             picCurFrame.TabStop = false;
@@ -218,7 +221,7 @@
             btnFileMultiDel.FlatStyle = FlatStyle.Flat;
             btnFileMultiDel.Font = new Font("맑은 고딕", 15.75F);
             btnFileMultiDel.ForeColor = Color.White;
-            btnFileMultiDel.Location = new Point(973, 426);
+            btnFileMultiDel.Location = new Point(908, 383);
             btnFileMultiDel.Name = "btnFileMultiDel";
             btnFileMultiDel.Size = new Size(211, 51);
             btnFileMultiDel.TabIndex = 11;
@@ -231,12 +234,10 @@
             dgvDebug.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             dgvDebug.BackgroundColor = Color.LightSteelBlue;
             dgvDebug.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            dgvDebug.Location = new Point(625, 494);
+            dgvDebug.Location = new Point(577, 455);
             dgvDebug.Name = "dgvDebug";
-            dgvDebug.RowHeadersWidth = 51;
-            dgvDebug.Size = new Size(602, 441);
+            dgvDebug.Size = new Size(542, 441);
             dgvDebug.TabIndex = 13;
-            dgvDebug.CellContentClick += dgvDebug_CellContentClick;
             // 
             // btnAutoPic
             // 
@@ -245,7 +246,7 @@
             btnAutoPic.FlatStyle = FlatStyle.Flat;
             btnAutoPic.Font = new Font("맑은 고딕", 15.75F);
             btnAutoPic.ForeColor = Color.FromArgb(0, 0, 64);
-            btnAutoPic.Location = new Point(11, 354);
+            btnAutoPic.Location = new Point(11, 298);
             btnAutoPic.Name = "btnAutoPic";
             btnAutoPic.Size = new Size(211, 51);
             btnAutoPic.TabIndex = 3;
@@ -259,7 +260,7 @@
             txbFPS.BackColor = Color.LightSteelBlue;
             txbFPS.BorderStyle = BorderStyle.FixedSingle;
             txbFPS.Font = new Font("맑은 고딕", 14.25F, FontStyle.Regular, GraphicsUnit.Point, 129);
-            txbFPS.Location = new Point(59, 416);
+            txbFPS.Location = new Point(59, 360);
             txbFPS.Name = "txbFPS";
             txbFPS.Size = new Size(164, 33);
             txbFPS.TabIndex = 2;
@@ -276,7 +277,7 @@
             label1.BackColor = Color.LightSteelBlue;
             label1.Font = new Font("맑은 고딕", 14.25F);
             label1.ForeColor = Color.FromArgb(0, 0, 64);
-            label1.Location = new Point(11, 419);
+            label1.Location = new Point(11, 363);
             label1.Name = "label1";
             label1.Size = new Size(42, 25);
             label1.TabIndex = 22;
@@ -289,9 +290,9 @@
             lstFiles.Columns.AddRange(new ColumnHeader[] { colNum, colName, colTime });
             lstFiles.ForeColor = SystemColors.WindowText;
             lstFiles.FullRowSelect = true;
-            lstFiles.Location = new Point(11, 494);
+            lstFiles.Location = new Point(12, 455);
             lstFiles.Name = "lstFiles";
-            lstFiles.Size = new Size(619, 441);
+            lstFiles.Size = new Size(559, 441);
             lstFiles.TabIndex = 12;
             lstFiles.UseCompatibleStateImageBehavior = false;
             lstFiles.View = View.Details;
@@ -322,7 +323,7 @@
             btnStartCollection.FlatStyle = FlatStyle.Flat;
             btnStartCollection.Font = new Font("맑은 고딕", 15.75F);
             btnStartCollection.ForeColor = Color.FromArgb(0, 0, 64);
-            btnStartCollection.Location = new Point(11, 297);
+            btnStartCollection.Location = new Point(11, 241);
             btnStartCollection.Name = "btnStartCollection";
             btnStartCollection.Size = new Size(211, 51);
             btnStartCollection.TabIndex = 1;
@@ -332,12 +333,12 @@
             // 
             // btnStartLearning
             // 
-            btnStartLearning.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+            btnStartLearning.Anchor = AnchorStyles.Top | AnchorStyles.Right;
             btnStartLearning.BackColor = Color.FromArgb(255, 255, 128);
             btnStartLearning.FlatStyle = FlatStyle.Flat;
             btnStartLearning.Font = new Font("맑은 고딕", 15.75F);
             btnStartLearning.ForeColor = Color.FromArgb(0, 0, 64);
-            btnStartLearning.Location = new Point(973, 255);
+            btnStartLearning.Location = new Point(908, 86);
             btnStartLearning.Name = "btnStartLearning";
             btnStartLearning.Size = new Size(211, 51);
             btnStartLearning.TabIndex = 8;
@@ -345,12 +346,47 @@
             btnStartLearning.UseVisualStyleBackColor = false;
             btnStartLearning.Click += btnStartLearning_Click_1;
             // 
+            // txtLinuxUser
+            // 
+            txtLinuxUser.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+            txtLinuxUser.Font = new Font("맑은 고딕", 14.25F, FontStyle.Regular, GraphicsUnit.Point, 129);
+            txtLinuxUser.ForeColor = SystemColors.ActiveBorder;
+            txtLinuxUser.Location = new Point(12, 202);
+            txtLinuxUser.Name = "txtLinuxUser";
+            txtLinuxUser.Size = new Size(210, 33);
+            txtLinuxUser.TabIndex = 23;
+            txtLinuxUser.TextAlign = HorizontalAlignment.Center;
+            // 
+            // txtMyCarFolder
+            // 
+            txtMyCarFolder.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            txtMyCarFolder.Font = new Font("맑은 고딕", 14.25F, FontStyle.Regular, GraphicsUnit.Point, 129);
+            txtMyCarFolder.ForeColor = SystemColors.ActiveBorder;
+            txtMyCarFolder.Location = new Point(909, 47);
+            txtMyCarFolder.Name = "txtMyCarFolder";
+            txtMyCarFolder.Size = new Size(210, 33);
+            txtMyCarFolder.TabIndex = 24;
+            txtMyCarFolder.TextAlign = HorizontalAlignment.Center;
+            // 
+            // pbLearningProgress
+            // 
+            pbLearningProgress.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            pbLearningProgress.ForeColor = Color.Lime;
+            pbLearningProgress.Location = new Point(908, 143);
+            pbLearningProgress.Name = "pbLearningProgress";
+            pbLearningProgress.Size = new Size(211, 23);
+            pbLearningProgress.Style = ProgressBarStyle.Continuous;
+            pbLearningProgress.TabIndex = 25;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = Color.FromArgb(0, 0, 64);
-            ClientSize = new Size(1189, 847);
+            ClientSize = new Size(1129, 905);
+            Controls.Add(pbLearningProgress);
+            Controls.Add(txtMyCarFolder);
+            Controls.Add(txtLinuxUser);
             Controls.Add(btnStartLearning);
             Controls.Add(btnStartCollection);
             Controls.Add(lstFiles);
@@ -407,5 +443,8 @@
         private ColumnHeader colNum;
         private Button btnStartCollection;
         private Button btnStartLearning;
+        private TextBox txtLinuxUser;
+        private TextBox txtMyCarFolder;
+        private ProgressBar pbLearningProgress;
     }
 }
