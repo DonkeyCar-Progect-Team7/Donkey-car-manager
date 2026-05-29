@@ -33,6 +33,8 @@ namespace Donkey_car_manager
         }
         //  이 코드를 새로 넣어줍니다.
         private List<CarFileInfo> carImages = new List<CarFileInfo>();
+        // 🌟 페이지가 바뀌어도 사용자가 Ctrl로 선택한 모든 파일의 '전체 인덱스'를 기억할 바구니
+        private HashSet<int> selectedGlobalIndices = new HashSet<int>();
 
         // 정렬 상태(오름차순/내림차순)를 기억할 패스포트 변수도 같이 추가해 줍니다.
         private bool isAscending = true;
@@ -429,36 +431,38 @@ namespace Donkey_car_manager
         }
         private void UpdateListPage()
         {
-            if (carImages == null) return;
+            if (carImages == null || carImages.Count == 0) return;
 
-            // 1. 기존 리스트뷰 아이템들 초기화
+            lstFiles.BeginUpdate();
             lstFiles.Items.Clear();
 
-            int startIndex = currentPage * pageSize;
-            int endIndex = Math.Min(startIndex + pageSize, carImages.Count);
+            int startIdx = currentPage * pageSize;
+            int endIdx = Math.Min(startIdx + pageSize, carImages.Count);
 
-            // 2. 현재 페이지의 파일들을 루프 돌며 리스트뷰에 삽입
-            for (int i = startIndex; i < endIndex; i++)
+            for (int i = startIdx; i < endIdx; i++)
             {
-                string filePath = carImages[i].FilePath;
-                string fileName = System.IO.Path.GetFileName(filePath);
-                string fileTime = carImages[i].WriteTime.ToString("yyyy-MM-dd HH:mm:ss");
+                var fileInfo = carImages[i];
+                string fileName = Path.GetFileName(fileInfo.FilePath);
+                string writeTime = fileInfo.WriteTime.ToString("yyyy-MM-dd HH:mm:ss");
 
-                // 🌟 1부터 시작하는 전체 순번 계산 (인덱스는 0부터 시작하므로 i + 1)
-                string fileNumber = (i + 1).ToString();
+                ListViewItem item = new ListViewItem(fileName);
+                item.SubItems.Add(writeTime);
 
-                // [행 추가] 맨 첫 번째 열(번호)에 순번을 집어넣습니다.
-                ListViewItem item = new ListViewItem(fileNumber);
-
-                // 두 번째 열(파일명)과 세 번째 열(수정 시간)에 데이터를 하위 항목으로 붙입니다.
-                item.SubItems.Add(fileName);
-                item.SubItems.Add(fileTime);
+                // 🌟 [핵심] 현재 그리는 파일이 이전에 Ctrl로 선택해 둔 글로벌 인덱스 목록에 있다면 다시 선택 상태로 만듭니다.
+                if (selectedGlobalIndices.Contains(i))
+                {
+                    item.Selected = true;
+                }
 
                 lstFiles.Items.Add(item);
             }
 
+            lstFiles.EndUpdate();
+
+            // 라벨 업데이트
             lblCurFilePage.Text = $"{currentPage + 1} / {totalPages}";
         }
+
         private void btnPageUp_Click(object sender, EventArgs e)
         {
             if (currentPage > 0)
@@ -842,6 +846,32 @@ namespace Donkey_car_manager
 
             // 이미지 출력 및 페이지 리스트박스 동기화 처리
             ShowImage(currentImageIndex);
+
+            // 🌟 2번 기능: 프레임 자동 넘기기 시 하단 리스트뷰 항목도 실시간 추적 선택
+            if (carImages != null && carImages.Count > 0)
+            {
+                // 현재 글로벌 인덱스가 몇 번째 페이지에 속하는지 계산
+                int targetPage = currentImageIndex / pageSize;
+
+                // 자동 넘기기 도중 페이지 임계점을 넘어가면 페이지를 강제로 전환합니다.
+                if (targetPage != currentPage)
+                {
+                    currentPage = targetPage;
+                    UpdateListPage();
+                }
+
+                // 현재 페이지 안에서의 상대적인 리스트뷰 인덱스 계산
+                int targetLocalIndex = currentImageIndex % pageSize;
+
+                if (targetLocalIndex >= 0 && targetLocalIndex < lstFiles.Items.Count)
+                {
+                    // 기존 선택 해제 후 새로운 아이템 포커스 및 자동 스크롤 추적
+                    lstFiles.SelectedItems.Clear();
+                    lstFiles.Items[targetLocalIndex].Selected = true;
+                    lstFiles.Items[targetLocalIndex].Focused = true;
+                    lstFiles.Items[targetLocalIndex].EnsureVisible();
+                }
+            }
         }
 
         private void btnAutoPic_Click(object sender, EventArgs e)
@@ -941,20 +971,18 @@ namespace Donkey_car_manager
         // 1. 리스트뷰에서 항목을 마우스나 방향키로 클릭할 때 실행되는 이벤트
         private void lstFiles_ItemSelectionChanged(object sender, ListViewItemSelectionChangedEventArgs e)
         {
+            // 현재 아이템의 전체 파일 기준 실제(글로벌) 인덱스 계산
+            int globalIndex = (currentPage * pageSize) + e.ItemIndex;
+
             if (e.IsSelected)
             {
-                // 현재 페이지와 내부 인덱스를 조합해 전체 기준의 실제 인덱스 계산
-                int actualIndex = (currentPage * pageSize) + e.ItemIndex;
-
-                if (carImages != null && actualIndex >= 0 && actualIndex < carImages.Count)
-                {
-                    currentImageIndex = actualIndex;
-                    trbFrame.Value = currentImageIndex;
-                    ShowImage(currentImageIndex);
-
-                    // 🌟 클릭한 항목의 정보를 기반으로 UI 전체 갱신 호출
-                    UpdatePageUI(e.ItemIndex);
-                }
+                // 선택되었다면 바구니에 추가
+                selectedGlobalIndices.Add(globalIndex);
+            }
+            else
+            {
+                // 선택 해제되었다면 바구니에서 제거
+                selectedGlobalIndices.Remove(globalIndex);
             }
         }
 
@@ -1169,8 +1197,72 @@ namespace Donkey_car_manager
         {
             if (e.KeyCode == Keys.Delete)
             {
-                // 🌟 바뀐 버튼 이름인 btnFileDelete_Click을 정확하게 호출해 줍니다!
                 btnFileDelete_Click(sender, e);
+                return;
+            }
+
+            if (lstFiles.SelectedIndices.Count > 0)
+            {
+                int minSelectedIndex = lstFiles.SelectedIndices.Cast<int>().Min();
+                int maxSelectedIndex = lstFiles.SelectedIndices.Cast<int>().Max();
+
+                // [위쪽 방향키] 선택 영역의 맨 윗줄이 0번일 때 상단 페이지로 점프
+                if (e.KeyCode == Keys.Up && minSelectedIndex == 0)
+                {
+                    if (currentPage > 0)
+                    {
+                        // 🌟 [핵심] 윈폼 리스트뷰가 이전 포커스 위치를 기억해서 
+                        // 원치 않는 다중 선택을 해버리는 버그를 막기 위해 포커스 링크를 끊어줍니다.
+                        lstFiles.FocusedItem = null;
+
+                        currentPage--;
+                        UpdateListPage();
+
+                        // Ctrl을 누른 채 이전 페이지로 넘어갔다면, 이전 페이지의 '맨 하단' 아이템을 포커싱합니다.
+                        if (lstFiles.Items.Count > 0)
+                        {
+                            int lastIdx = lstFiles.Items.Count - 1;
+
+                            // 바구니 동기화 및 강제 선택
+                            selectedGlobalIndices.Add((currentPage * pageSize) + lastIdx);
+
+                            lstFiles.Items[lastIdx].Selected = true;
+                            lstFiles.Items[lastIdx].Focused = true;
+                            lstFiles.Items[lastIdx].EnsureVisible();
+                        }
+
+                        // 키 입력 처리를 완료했음을 선언하여 윈폼 고유의 오작동 방지
+                        e.Handled = true;
+                        e.SuppressKeyPress = true;
+                    }
+                }
+                // [아래쪽 방향키] 선택 영역의 맨 아랫줄이 리스트뷰 끝일 때 하단 페이지로 점프
+                else if (e.KeyCode == Keys.Down && maxSelectedIndex == lstFiles.Items.Count - 1)
+                {
+                    if (currentPage < totalPages - 1)
+                    {
+                        // 🌟 [핵심] 다음 페이지로 넘어가기 전 현재 리스트뷰의 포커스 앵커를 리셋합니다.
+                        // 이 처리를 해주면 Ctrl을 누르고 있어도 엉뚱한 파일들이 줄줄이 선택되지 않습니다.
+                        lstFiles.FocusedItem = null;
+
+                        currentPage++;
+                        UpdateListPage();
+
+                        // Ctrl을 누른 채 다음 페이지로 넘어갔다면, 다음 페이지의 '맨 상단(0번)' 아이템을 포커싱합니다.
+                        if (lstFiles.Items.Count > 0)
+                        {
+                            selectedGlobalIndices.Add(currentPage * pageSize); // 바구니 동기화
+
+                            lstFiles.Items[0].Selected = true;
+                            lstFiles.Items[0].Focused = true;
+                            lstFiles.Items[0].EnsureVisible();
+                        }
+
+                        // 키 입력 처리를 완료했음을 선언하여 윈폼 고유의 오작동 방지
+                        e.Handled = true;
+                        e.SuppressKeyPress = true;
+                    }
+                }
             }
         }
 
