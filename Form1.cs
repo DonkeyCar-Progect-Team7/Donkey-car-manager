@@ -8,6 +8,173 @@ namespace Donkey_car_manager
 {
     public partial class Form1 : Form
     {
+        // AI 스트리밍 전역 변수
+        private System.Threading.CancellationTokenSource aiStreamCts;
+        private System.Net.Http.HttpClient aiHttpClient;
+        private PictureBox aiPictureBox;
+        private bool aiStreaming = false;
+
+        // button1 클릭 이벤트: 토글형으로 aiPictureBox 생성/스트림 시작 또는 중지/제거
+        private async void button1_Click(object sender, EventArgs e)
+        {
+            if (!aiStreaming)
+            {
+                // 동적 PictureBox 생성
+                aiPictureBox = new PictureBox();
+                aiPictureBox.Name = "aiPictureBox";
+                aiPictureBox.SizeMode = PictureBoxSizeMode.Zoom;
+                // 폼 중앙 영역 전체를 채우도록 설정
+                aiPictureBox.Dock = DockStyle.Fill;
+                aiPictureBox.BorderStyle = BorderStyle.FixedSingle;
+
+                this.Controls.Add(aiPictureBox);
+                aiPictureBox.BringToFront();
+
+                // 스트림 시작
+                aiStreamCts = new System.Threading.CancellationTokenSource();
+                aiHttpClient = new System.Net.Http.HttpClient();
+                aiStreaming = true;
+
+                try
+                {
+                    // 버튼 텍스트 상태 변경
+                    button1.Text = "자율주행 종료";
+                    await Task.Run(() => RunMjpegStream("http://localhost:8887/video", aiStreamCts.Token));
+                }
+                catch (OperationCanceledException)
+                {
+                    // 정상 중단
+                }
+                catch (Exception)
+                {
+                    // 연결 실패 메시지
+                    if (this.IsHandleCreated)
+                    {
+                        this.BeginInvoke(new Action(() =>
+                        {
+                            MessageBox.Show("DonkeyCar 서버가 실행 중인지 확인하세요.", "연결 실패", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            // 실패 시 aiPictureBox 제거
+                            if (aiPictureBox != null)
+                            {
+                                if (this.Controls.Contains(aiPictureBox)) this.Controls.Remove(aiPictureBox);
+                                aiPictureBox.Dispose();
+                                aiPictureBox = null;
+                            }
+                            aiStreaming = false;
+                            button1.Text = "자율주행 시작";
+                        }));
+                    }
+                }
+            }
+            else
+            {
+                // 중지 및 제거
+                try { aiStreamCts?.Cancel(); aiHttpClient?.CancelPendingRequests(); } catch { }
+                aiStreamCts?.Dispose(); aiStreamCts = null;
+                aiHttpClient?.Dispose(); aiHttpClient = null;
+                aiStreaming = false;
+
+                if (this.IsHandleCreated)
+                {
+                    this.BeginInvoke(new Action(() =>
+                    {
+                        try
+                        {
+                            if (aiPictureBox != null)
+                            {
+                                var prev = aiPictureBox.Image;
+                                aiPictureBox.Image = null;
+                                prev?.Dispose();
+                                if (this.Controls.Contains(aiPictureBox)) this.Controls.Remove(aiPictureBox);
+                                aiPictureBox.Dispose();
+                                aiPictureBox = null;
+                            }
+                        }
+                        catch { }
+                        // 버튼 텍스트 복원
+                        button1.Text = "자율주행 시작";
+                    }));
+                }
+            }
+        }
+
+        // MJPEG 스트림 읽기 (SOI/EOI로 프레임 분리)
+        private async Task RunMjpegStream(string url, System.Threading.CancellationToken token)
+        {
+            using (var client = aiHttpClient ?? new System.Net.Http.HttpClient())
+            using (var resp = await client.GetAsync(url, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, token))
+            {
+                if (!resp.IsSuccessStatusCode) throw new Exception("HTTP error");
+                using (var stream = await resp.Content.ReadAsStreamAsync(token))
+                {
+                    var buf = new byte[4096];
+                    var ms = new System.IO.MemoryStream();
+                    while (!token.IsCancellationRequested)
+                    {
+                        int read = await stream.ReadAsync(buf, 0, buf.Length, token);
+                        if (read <= 0) break;
+                        ms.Write(buf, 0, read);
+                        var data = ms.ToArray();
+                        int soi = IndexOf(data, new byte[] { 0xFF, 0xD8 });
+                        int eoi = IndexOf(data, new byte[] { 0xFF, 0xD9 });
+                        if (soi >= 0 && eoi > soi)
+                        {
+                            int len = eoi - soi + 2;
+                            byte[] jpeg = new byte[len];
+                            Array.Copy(data, soi, jpeg, 0, len);
+                            int remaining = data.Length - (soi + len);
+                            ms.SetLength(0);
+                            if (remaining > 0) ms.Write(data, soi + len, remaining);
+                            ShowImageOnAiPictureBox(jpeg);
+                        }
+                    }
+                }
+            }
+        }
+
+        // UI 스레드에서 aiPictureBox에 이미지 표시
+        private void ShowImageOnAiPictureBox(byte[] jpeg)
+        {
+            try
+            {
+                using (var ms = new System.IO.MemoryStream(jpeg))
+                {
+                    var img = Image.FromStream(ms);
+                    if (this.IsHandleCreated)
+                    {
+                        this.BeginInvoke(new Action(() =>
+                        {
+                            try
+                            {
+                                if (aiPictureBox != null)
+                                {
+                                    var prev = aiPictureBox.Image;
+                                    aiPictureBox.Image = (Image)img.Clone();
+                                    prev?.Dispose();
+                                }
+                            }
+                            catch { }
+                        }));
+                    }
+                }
+            }
+            catch { }
+        }
+
+        private static int IndexOf(byte[] haystack, byte[] needle)
+        {
+            if (haystack == null || needle == null || haystack.Length < needle.Length) return -1;
+            for (int i = 0; i <= haystack.Length - needle.Length; i++)
+            {
+                bool ok = true;
+                for (int j = 0; j < needle.Length; j++)
+                {
+                    if (haystack[i + j] != needle[j]) { ok = false; break; }
+                }
+                if (ok) return i;
+            }
+            return -1;
+        }
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
         private static extern Int32 SendMessage(IntPtr hWnd, int msg, int wParam, [MarshalAs(UnmanagedType.LPWStr)] string lParam);
         private const int EM_SETCUEBANNER = 0x1501;
