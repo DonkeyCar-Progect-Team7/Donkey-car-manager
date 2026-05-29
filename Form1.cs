@@ -287,6 +287,29 @@ namespace Donkey_car_manager
                 // 트랙바의 현재 위치 값을 인덱스로 설정
                 currentImageIndex = trbFrame.Value;
                 ShowImage(currentImageIndex);
+
+                // 현재 이미지가 속한 페이지 계산
+                currentPage = currentImageIndex / pageSize;
+
+
+                // 리스트 새로고침
+                UpdateListPage();
+
+                // 페이지 안에서 몇 번째인지 계산
+                int localIndex =
+                    currentImageIndex % pageSize;
+
+
+                if (localIndex >= 0 &&
+                    localIndex < lstFiles.Items.Count)
+                {
+                    lstFiles.Items[localIndex].Selected = true;
+                    lstFiles.Items[localIndex].Focused = true;
+                    lstFiles.EnsureVisible(localIndex);
+
+                }
+
+
             }
         }
         private void ShowImage(int index)
