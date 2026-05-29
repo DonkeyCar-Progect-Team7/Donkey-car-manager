@@ -612,7 +612,8 @@ namespace Donkey_car_manager
                 string fileName = Path.GetFileName(fileInfo.FilePath);
                 string writeTime = fileInfo.WriteTime.ToString("yyyy-MM-dd HH:mm:ss");
 
-                ListViewItem item = new ListViewItem(fileName);
+                ListViewItem item = new ListViewItem((i + 1).ToString());
+                item.SubItems.Add(fileName);
                 item.SubItems.Add(writeTime);
 
                 // 🌟 [핵심] 현재 그리는 파일이 이전에 Ctrl로 선택해 둔 글로벌 인덱스 목록에 있다면 다시 선택 상태로 만듭니다.
