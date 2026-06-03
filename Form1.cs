@@ -245,6 +245,8 @@ namespace Donkey_car_manager
         private int pageSize = 20;
         private int currentPage = 0;
         private int totalPages = 0;
+        // 화면에 한 번에 표시되는 이미지 개수 (visibleCount)
+        private int visibleCount = 20;
 
         // 2. 기록창 확장을 위한 전역 변수들 (클래스 바로 아래 정상 배치)
         private bool isDebugExpanded = false;
@@ -275,6 +277,8 @@ namespace Donkey_car_manager
             InitDriveChart();
             // Ensure chart is brought to front after form is shown and report status
             this.Shown += Form1_Shown;
+            // 파일을 열기 전에는 visible range 라벨을 숨김
+            try { if (label2 != null) label2.Visible = false; } catch { }
         }
         // 동키카 그래프를 위한 코드
         private Chart chartDriveData; // 전역 변수로 차트 선언
@@ -474,6 +478,10 @@ namespace Donkey_car_manager
                     trbFrame.Maximum = Math.Max(0, carImages.Count - 1);
                     trbFrame.Value = 0;
 
+                    // visibleCount 설정(화면에 한 번에 보이는 이미지 수)
+                    visibleCount = pageSize;
+                    UpdateVisibleRangeLabel();
+
                     // 7. 새로 바뀐 데이터를 화면(ListView와 PictureBox)에 그려줍니다.
                     UpdateListPage();
                     ShowImage(currentImageIndex);
@@ -542,6 +550,8 @@ namespace Donkey_car_manager
 
             // 🌟 [추가] 트랙바나 자동 재생 시에도 상단 라벨이 "프레임 번호 : X / Y" 형태로 실시간 동기화되도록 설정
             lblFrameNum.Text = $"프레임 번호 : {index + 1} / {carImages.Count}";
+            // visible range label 업데이트
+            UpdateVisibleRangeLabel();
         }
 
         private int multiStartIndex = -1;
@@ -594,6 +604,35 @@ namespace Donkey_car_manager
             panelRange.BringToFront();
 
 
+        }
+
+        // 트랙바에 보이는 현재 이미지 범위를 label2와 lblVisibleRange에 표시
+        private void UpdateVisibleRangeLabel()
+        {
+            int total = carImages?.Count ?? 0;
+            if (total == 0)
+            {
+                try { if (label2 != null) label2.Text = "0 ~ 0"; } catch { }
+                return;
+            }
+
+            // lstFiles에 실제로 표시된 항목 기준으로 계산
+            int startIdx = currentPage * pageSize;
+            int shownCount = lstFiles?.Items?.Count ?? 0;
+            if (shownCount <= 0)
+            {
+                try { if (label2 != null) label2.Text = "0 ~ 0"; } catch { }
+                return;
+            }
+
+            int firstShown = startIdx;
+            int lastShown = startIdx + shownCount - 1;
+            // 범위가 전체 개수 내에 있도록 조정
+            firstShown = Math.Max(0, Math.Min(total - 1, firstShown));
+            lastShown = Math.Max(0, Math.Min(total - 1, lastShown));
+
+            string text = $"{firstShown + 1} ~ {lastShown + 1}";
+            try { if (label2 != null) label2.Text = text; } catch { }
         }
 
         private void trbFrame_MouseDown(
@@ -663,6 +702,9 @@ namespace Donkey_car_manager
 
             // 라벨 업데이트
             lblCurFilePage.Text = $"{currentPage + 1} / {totalPages}";
+            // visible range 라벨 갱신 (lstFiles에 표시된 항목 기준)
+            try { if (label2 != null) label2.Visible = true; } catch { }
+            UpdateVisibleRangeLabel();
         }
 
         private void btnPageUp_Click(object sender, EventArgs e)
@@ -1717,6 +1759,11 @@ namespace Donkey_car_manager
                 // 현재 프로세스 완전히 종료 (안전을 위해 추가)
                 Environment.Exit(0);
             }
+        }
+
+        private void panelRange_Paint(object sender, PaintEventArgs e)
+        {
+
         }
     }
 }
