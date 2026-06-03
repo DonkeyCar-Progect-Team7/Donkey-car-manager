@@ -556,54 +556,56 @@ namespace Donkey_car_manager
 
         private int multiStartIndex = -1;
         private int multiEndIndex = -1;
+        // 마지막으로 확정된(커밋된) 트랙바 범위(시각적 표시용)
+        private int committedRangeStart = -1;
+        private int committedRangeEnd = -1;
 
 
 
 
         private void UpdateRangeHighlight()
         {
-            if (multiStartIndex == -1 ||
-                multiEndIndex == -1)
+            // 범위가 설정되지 않았으면 숨김
+            // 단, 커밋된 범위(committedRange)가 있으면 그 범위를 표시해야 함
+            if ((committedRangeStart == -1 || committedRangeEnd == -1) && (multiStartIndex == -1 || multiEndIndex == -1))
             {
                 panelRange.Visible = false;
                 return;
             }
 
-            int start =
-                Math.Min(multiStartIndex, multiEndIndex);
+            // 우선적으로 커밋된 범위를 사용
+            int start, end;
+            if (committedRangeStart != -1 && committedRangeEnd != -1)
+            {
+                start = committedRangeStart;
+                end = committedRangeEnd;
+            }
+            else
+            {
+                start = Math.Min(multiStartIndex, multiEndIndex);
+                end = Math.Max(multiStartIndex, multiEndIndex);
+            }
 
-            int end =
-                Math.Max(multiStartIndex, multiEndIndex);
+            // 트랙바의 최소/최대값 범위 확보 (0으로 나누는 것을 방지)
+            int tbMin = trbFrame.Minimum;
+            int tbMax = trbFrame.Maximum;
+            int span = Math.Max(1, tbMax - tbMin);
 
-            double ratioStart =
-                (double)start / trbFrame.Maximum;
+            double ratioStart = (double)(start - tbMin) / span;
+            double ratioEnd = (double)(end - tbMin) / span;
 
-            double ratioEnd =
-                (double)end / trbFrame.Maximum;
+            int x1 = trbFrame.Left + (int)(trbFrame.Width * ratioStart);
+            int x2 = trbFrame.Left + (int)(trbFrame.Width * ratioEnd);
 
-            int x1 =
-                trbFrame.Left +
-                (int)(trbFrame.Width * ratioStart);
-
-            int x2 =
-                trbFrame.Left +
-                (int)(trbFrame.Width * ratioEnd);
-
-            panelRange.Top =
-                trbFrame.Top + 8;
-
-            panelRange.Left = x1;
-
-            panelRange.Width =
-                Math.Max(5, x2 - x1);
-
-            panelRange.Height = 6;
+            // 패널 세로 위치를 트랙바 중앙에 맞춤
+            int desiredHeight = Math.Max(6, panelRange.Height);
+            panelRange.Height = desiredHeight;
+            panelRange.Top = trbFrame.Top + Math.Max(0, trbFrame.Height / 2 - panelRange.Height / 2);
+            panelRange.Left = Math.Min(x1, x2);
+            panelRange.Width = Math.Max(5, Math.Abs(x2 - x1));
 
             panelRange.Visible = true;
-
             panelRange.BringToFront();
-
-
         }
 
         // 트랙바에 보이는 현재 이미지 범위를 label2와 lblVisibleRange에 표시
@@ -640,9 +642,7 @@ namespace Donkey_car_manager
     MouseEventArgs e)
         {
             panelRange.Height = 6;
-            panelRange.BackColor =
-                Color.DeepSkyBlue;
-            panelRange.Visible = false;
+            panelRange.BackColor = Color.DeepSkyBlue;
             int newValue =
                 trbFrame.Minimum +
                 (trbFrame.Maximum - trbFrame.Minimum)
@@ -654,19 +654,63 @@ namespace Donkey_car_manager
                     trbFrame.Maximum,
                     newValue));
 
-            if ((ModifierKeys & Keys.Shift)
-                == Keys.Shift)
+            if ((ModifierKeys & Keys.Shift) == Keys.Shift)
             {
                 if (multiStartIndex == -1)
                 {
+                    // 첫 번째 클릭: 새로 시작하므로 이전 선택 모두 초기화
+                    selectedGlobalIndices.Clear();
+                    committedRangeStart = -1;
+                    committedRangeEnd = -1;
+                    // 시작 인덱스 설정
                     multiStartIndex = newValue;
                 }
                 else
                 {
+                    // 두 번째 클릭: 범위 확정
                     multiEndIndex = newValue;
+
+                    int start = Math.Min(multiStartIndex, multiEndIndex);
+                    int end = Math.Max(multiStartIndex, multiEndIndex);
+
+                    // 선택 범위의 모든 전역 인덱스를 selectedGlobalIndices에 추가
+                    for (int gi = start; gi <= end; gi++)
+                    {
+                        if (gi >= 0 && gi < (carImages?.Count ?? 0))
+                        {
+                            selectedGlobalIndices.Add(gi);
+                        }
+                    }
+
+                    // 리스트 갱신하여 선택 상태 반영
+                    UpdateListPage();
+
+                    // 커밋된 범위로 보관하여 시각적으로 표시
+                    committedRangeStart = start;
+                    committedRangeEnd = end;
+
+                    // 다음 선택을 위해 임시 시작 인덱스 초기화
+                    multiStartIndex = -1;
+                    multiEndIndex = -1;
                 }
 
                 UpdateRangeHighlight();
+            }
+            else
+            {
+                // Shift가 눌려있지 않은 일반 클릭: 이전의 다중 선택을 취소
+                if (selectedGlobalIndices != null && selectedGlobalIndices.Count > 0)
+                {
+                    selectedGlobalIndices.Clear();
+                }
+                committedRangeStart = -1;
+                committedRangeEnd = -1;
+                multiStartIndex = -1;
+                multiEndIndex = -1;
+                panelRange.Visible = false;
+
+                // 정상 클릭 동작: 트랙바 위치로 이미지와 리스트 동기화
+                try { trbFrame_Scroll(trbFrame, EventArgs.Empty); } catch { }
             }
         }
         private void UpdateListPage()
@@ -705,6 +749,8 @@ namespace Donkey_car_manager
             // visible range 라벨 갱신 (lstFiles에 표시된 항목 기준)
             try { if (label2 != null) label2.Visible = true; } catch { }
             UpdateVisibleRangeLabel();
+            // 트랙바 위의 범위 표시도 갱신
+            UpdateRangeHighlight();
         }
 
         private void btnPageUp_Click(object sender, EventArgs e)
@@ -957,21 +1003,15 @@ namespace Donkey_car_manager
 
         private void btnFileMultiDel_Click(object sender, EventArgs e)
         {
-            // 1. 리스트뷰에서 선택된 항목이 없으면 리턴
-            if (lstFiles.SelectedIndices.Count == 0)
+            // 우선적으로 Shift+트랙바로 설정한 전역 선택(selectedGlobalIndices)을 사용
+            if (selectedGlobalIndices != null && selectedGlobalIndices.Count > 0)
             {
-                MessageBox.Show("다중 삭제할 파일을 리스트에서 선택해주세요.\n(Ctrl 이나 Shift를 누른 채 클릭하면 여러 개 선택이 가능합니다.)",
-                                "알림", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
+                int deleteCount = selectedGlobalIndices.Count;
+                DialogResult result = MessageBox.Show($"선택한 {deleteCount}개의 프레임을 영구 삭제하시겠습니까?",
+                                                      "다중 삭제 확인", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
 
-            int deleteCount = lstFiles.SelectedIndices.Count;
+                if (result != DialogResult.Yes) return;
 
-            DialogResult result = MessageBox.Show($"리스트에서 선택한 {deleteCount}개의 프레임 이미지를 정말로 디스크에서 영구 삭제하시겠습니까?",
-                                                  "다중 삭제 확인", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
-
-            if (result == DialogResult.Yes)
-            {
                 try
                 {
                     // 현재 화면에 띄워진 이미지 프로세스 해제 (파일 삭제를 위해 메모리 방출)
@@ -984,8 +1024,90 @@ namespace Donkey_car_manager
                     GC.Collect();
                     GC.WaitForPendingFinalizers();
 
-                    // 2. 🌟 핵심: 리스트뷰의 선택된 인덱스들을 역순으로 정렬하여 리스트로 가져옵니다.
-                    // (앞에서부터 지우면 인덱스가 당겨져서 엉뚱한 파일이 지워지기 때문에 뒤에서부터 지워야 합니다)
+                    var toDelete = selectedGlobalIndices.OrderByDescending(i => i).ToList();
+                    foreach (int globalIdx in toDelete)
+                    {
+                        if (globalIdx >= 0 && globalIdx < carImages.Count)
+                        {
+                            string path = carImages[globalIdx].FilePath;
+                            if (System.IO.File.Exists(path))
+                            {
+                                System.IO.File.Delete(path);
+                            }
+                            carImages.RemoveAt(globalIdx);
+                        }
+                    }
+
+                    selectedGlobalIndices.Clear();
+                    MessageBox.Show($"{deleteCount}개의 파일 삭제를 완료했습니다.", "완료", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"파일 다중 삭제 작업 중 오류가 발생했습니다:\n{ex.Message}", "오류", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+
+                // UI 갱신
+                if (carImages.Count == 0)
+                {
+                    trbFrame.Maximum = 0;
+                    trbFrame.Value = 0;
+                    currentPage = 0;
+                    totalPages = 0;
+                    currentImageIndex = 0;
+
+                    lstFiles.Items.Clear();
+                    lblCurFilePage.Text = "0 / 0";
+                }
+                else
+                {
+                    totalPages = (int)Math.Ceiling((double)carImages.Count / pageSize);
+
+                    if (currentPage >= totalPages)
+                    {
+                        currentPage = totalPages - 1;
+                    }
+
+                    if (currentImageIndex >= carImages.Count)
+                    {
+                        currentImageIndex = carImages.Count - 1;
+                    }
+
+                    trbFrame.Maximum = Math.Max(0, carImages.Count - 1);
+                    trbFrame.Value = Math.Min(trbFrame.Value, trbFrame.Maximum);
+
+                    UpdateListPage();
+                    ShowImage(currentImageIndex);
+                }
+
+                return;
+            }
+
+            // selectedGlobalIndices가 비어있으면 기존 리스트뷰 선택 기반 삭제 동작 수행
+            // 1. 리스트뷰에서 선택된 항목이 없으면 리턴
+            if (lstFiles.SelectedIndices.Count == 0)
+            {
+                MessageBox.Show("다중 삭제할 파일을 리스트에서 선택해주세요.\n(Ctrl 이나 Shift를 누른 채 클릭하면 여러 개 선택이 가능합니다.)",
+                                "알림", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            int delCount = lstFiles.SelectedIndices.Count;
+            DialogResult dlg = MessageBox.Show($"리스트에서 선택한 {delCount}개의 프레임 이미지를 정말로 디스크에서 영구 삭제하시겠습니까?",
+                                              "다중 삭제 확인", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+
+            if (dlg == DialogResult.Yes)
+            {
+                try
+                {
+                    if (picCurFrame.Image != null)
+                    {
+                        picCurFrame.Image.Dispose();
+                        picCurFrame.Image = null;
+                    }
+
+                    GC.Collect();
+                    GC.WaitForPendingFinalizers();
+
                     List<int> selectedIndices = lstFiles.SelectedIndices.Cast<int>().OrderByDescending(i => i).ToList();
 
                     foreach (int listBoxIndex in selectedIndices)
@@ -995,57 +1117,49 @@ namespace Donkey_car_manager
                         if (actualIndex >= 0 && actualIndex < carImages.Count)
                         {
                             string fileToDelete = carImages[actualIndex].FilePath;
-
-                            // 디스크에서 실제 파일 삭제
                             if (System.IO.File.Exists(fileToDelete))
                             {
                                 System.IO.File.Delete(fileToDelete);
                             }
-
-                            // 메모리 바구니에서도 삭제
                             carImages.RemoveAt(actualIndex);
                         }
                     }
 
-                    MessageBox.Show($"{deleteCount}개의 파일 삭제를 완료했습니다.", "완료", MessageBoxButtons.OK, MessageBoxIcon.Information);
-
-                    // 3. UI 데이터 갱신 로직
-                    if (carImages.Count == 0)
-                    {
-                        trbFrame.Maximum = 0;
-                        trbFrame.Value = 0;
-                        currentPage = 0;
-                        totalPages = 0;
-                        currentImageIndex = 0;
-
-                        lstFiles.Items.Clear();
-                        lblCurFilePage.Text = "0 / 0";
-                    }
-                    else
-                    {
-                        totalPages = (int)Math.Ceiling((double)carImages.Count / pageSize);
-
-                        if (currentPage >= totalPages)
-                        {
-                            currentPage = totalPages - 1;
-                        }
-
-                        if (currentImageIndex >= carImages.Count)
-                        {
-                            currentImageIndex = carImages.Count - 1;
-                        }
-
-                        trbFrame.Maximum = carImages.Count - 1;
-                        trbFrame.Value = currentImageIndex;
-
-                        UpdateListPage();
-                        ShowImage(currentImageIndex);
-                    }
+                    MessageBox.Show($"{delCount}개의 파일 삭제를 완료했습니다.", "완료", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"파일 다중 삭제 작업 중 오류가 발생했습니다:\n{ex.Message}", "오류",
-                                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show($"파일 다중 삭제 작업 중 오류가 발생했습니다:\n{ex.Message}", "오류", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+
+                // UI 갱신
+                if (carImages.Count == 0)
+                {
+                    trbFrame.Maximum = 0;
+                    trbFrame.Value = 0;
+                    currentPage = 0;
+                    totalPages = 0;
+                    currentImageIndex = 0;
+
+                    lstFiles.Items.Clear();
+                    lblCurFilePage.Text = "0 / 0";
+                }
+                else
+                {
+                    totalPages = (int)Math.Ceiling((double)carImages.Count / pageSize);
+
+                    if (currentPage >= totalPages)
+                    {
+                        currentPage = totalPages - 1;
+                    }
+
+                    if (currentImageIndex >= carImages.Count)
+                    {
+                        currentImageIndex = carImages.Count - 1;
+                    }
+
+                    trbFrame.Maximum = Math.Max(0, carImages.Count - 1);
+                    trbFrame.Value = Math.Min(trbFrame.Value, trbFrame.Maximum);
 
                     UpdateListPage();
                     ShowImage(currentImageIndex);
