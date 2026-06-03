@@ -1279,13 +1279,26 @@ namespace Donkey_car_manager
             wslInfo.FileName = "cmd.exe";
 
             // 고정 데이터 보존
-            string linuxUser = "root";
-            string mycarFolder = "mysim";
-            string condaPath = "/root/miniconda3";
-            string linuxPath = "/root/mysim";
+            string linuxUser = txtLinuxUser.Text.Trim();
 
-            // 리눅스 명령어 바인딩 (계정 충돌을 방지하기 위해 -u root 옵션을 추가해 줍니다)
-            string linuxCommand = $"cd {linuxPath} && source {condaPath}/bin/activate donkeycar && python3 manage.py drive";
+            if (string.IsNullOrWhiteSpace(linuxUser))
+            {
+                MessageBox.Show(
+                    "우분투 사용자명을 입력해주세요.",
+                    "알림",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+
+                return;
+            }
+
+            string condaPath =
+                $"/home/{linuxUser}/miniconda3";
+
+            string linuxCommand =
+                $"cd /home/{linuxUser}/mysim && " +
+                $"source {condaPath}/bin/activate e2e_env && " +
+                $"python3 manage.py drive";
 
             // 🌟 cmd창을 열어(/c start) 제목이 "Donkeycar Server"인 새 터미널을 독립시키고 WSL 명령을 하달합니다.
             // 마지막에 ; exec bash를 주어 파이썬 에러가 나도 창이 안 닫히고 멈춰있게 만듭니다.
