@@ -56,7 +56,7 @@
             pbLearningProgress = new ProgressBar();
             btnSelectSim = new Button();
             panelRange = new Panel();
-            button1 = new Button();
+            btnStartAuto = new Button();
             ((System.ComponentModel.ISupportInitialize)trbFrame).BeginInit();
             ((System.ComponentModel.ISupportInitialize)picCurFrame).BeginInit();
             ((System.ComponentModel.ISupportInitialize)dgvDebug).BeginInit();
@@ -382,19 +382,19 @@
             panelRange.Size = new Size(649, 10);
             panelRange.TabIndex = 27;
             // 
-            // button1
+            // btnStartAuto
             // 
-            button1.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
-            button1.Font = new Font("Segoe UI Black", 19.8000011F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            button1.ForeColor = Color.Black;
-            button1.Location = new Point(907, 219);
-            button1.Margin = new Padding(3, 2, 3, 2);
-            button1.Name = "button1";
-            button1.Size = new Size(212, 62);
-            button1.TabIndex = 28;
-            button1.Text = "자율주행 시작";
-            button1.UseVisualStyleBackColor = true;
-            button1.Click += button1_Click;
+            btnStartAuto.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+            btnStartAuto.Font = new Font("Segoe UI Black", 19.8000011F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            btnStartAuto.ForeColor = Color.Black;
+            btnStartAuto.Location = new Point(907, 219);
+            btnStartAuto.Margin = new Padding(3, 2, 3, 2);
+            btnStartAuto.Name = "btnStartAuto";
+            btnStartAuto.Size = new Size(212, 62);
+            btnStartAuto.TabIndex = 28;
+            btnStartAuto.Text = "자율주행 시작";
+            btnStartAuto.UseVisualStyleBackColor = true;
+            btnStartAuto.Click += button1_Click;
             // 
             // Form1
             // 
@@ -402,7 +402,7 @@
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = Color.FromArgb(0, 0, 64);
             ClientSize = new Size(1129, 919);
-            Controls.Add(button1);
+            Controls.Add(btnStartAuto);
             Controls.Add(panelRange);
             Controls.Add(btnSelectSim);
             Controls.Add(pbLearningProgress);
@@ -465,6 +465,6 @@
         private ProgressBar pbLearningProgress;
         private Button btnSelectSim;
         private Panel panelRange;
-        private Button button1;
+        private Button btnStartAuto;
     }
 }

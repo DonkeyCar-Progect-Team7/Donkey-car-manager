@@ -3,11 +3,47 @@ using System.Windows.Forms.DataVisualization.Charting;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 using System.Windows.Forms.DataVisualization.Charting;
 using System.Runtime.InteropServices;
+using System.Net.WebSockets;
+using System.Text;
+using System.Threading.Tasks;
+using System.Text;
+
+
+
 
 namespace Donkey_car_manager
 {
     public partial class Form1 : Form
     {
+        private async Task SetFullAuto()
+        {
+            using (ClientWebSocket ws =
+                   new ClientWebSocket())
+            {
+                await ws.ConnectAsync(
+                    new Uri("ws://localhost:8887/wsDrive"),
+                    CancellationToken.None);
+
+                string json =
+                    "{\"drive_mode\":\"local\"}";
+
+                byte[] buffer =
+                    Encoding.UTF8.GetBytes(json);
+
+                await ws.SendAsync(
+                    new ArraySegment<byte>(buffer),
+                    WebSocketMessageType.Text,
+                    true,
+                    CancellationToken.None);
+
+                await ws.CloseAsync(
+                    WebSocketCloseStatus.NormalClosure,
+                    "",
+                    CancellationToken.None);
+            }
+        }
+
+
         // AI 스트리밍 전역 변수
         private System.Threading.CancellationTokenSource aiStreamCts;
         private System.Net.Http.HttpClient aiHttpClient;
@@ -17,18 +53,14 @@ namespace Donkey_car_manager
         // button1 클릭 이벤트: 토글형으로 aiPictureBox 생성/스트림 시작 또는 중지/제거
         private async void button1_Click(object sender, EventArgs e)
         {
+
+
+
+
+
             if (!aiStreaming)
             {
-                // 동적 PictureBox 생성
-                aiPictureBox = new PictureBox();
-                aiPictureBox.Name = "aiPictureBox";
-                aiPictureBox.SizeMode = PictureBoxSizeMode.Zoom;
-                // 폼 중앙 영역 전체를 채우도록 설정
-                aiPictureBox.Dock = DockStyle.Fill;
-                aiPictureBox.BorderStyle = BorderStyle.FixedSingle;
-
-                this.Controls.Add(aiPictureBox);
-                aiPictureBox.BringToFront();
+                aiPictureBox = picCurFrame;
 
                 // 스트림 시작
                 aiStreamCts = new System.Threading.CancellationTokenSource();
@@ -37,8 +69,10 @@ namespace Donkey_car_manager
 
                 try
                 {
+                    await SetFullAuto();
+
                     // 버튼 텍스트 상태 변경
-                    button1.Text = "자율주행 종료";
+                    btnStartAuto.Text = "자율주행 종료";
                     await Task.Run(() => RunMjpegStream("http://localhost:8887/video", aiStreamCts.Token));
                 }
                 catch (OperationCanceledException)
@@ -56,12 +90,12 @@ namespace Donkey_car_manager
                             // 실패 시 aiPictureBox 제거
                             if (aiPictureBox != null)
                             {
-                                if (this.Controls.Contains(aiPictureBox)) this.Controls.Remove(aiPictureBox);
-                                aiPictureBox.Dispose();
-                                aiPictureBox = null;
+                                var prev = aiPictureBox.Image;
+                                aiPictureBox.Image = null;
+                                prev?.Dispose();
                             }
                             aiStreaming = false;
-                            button1.Text = "자율주행 시작";
+                            btnStartAuto.Text = "자율주행 시작";
                         }));
                     }
                 }
@@ -82,21 +116,21 @@ namespace Donkey_car_manager
                         {
                             if (aiPictureBox != null)
                             {
-                                var prev = aiPictureBox.Image;
+                               
                                 aiPictureBox.Image = null;
-                                prev?.Dispose();
-                                if (this.Controls.Contains(aiPictureBox)) this.Controls.Remove(aiPictureBox);
-                                aiPictureBox.Dispose();
-                                aiPictureBox = null;
+                             
+                               
                             }
                         }
                         catch { }
                         // 버튼 텍스트 복원
-                        button1.Text = "자율주행 시작";
+                        btnStartAuto.Text = "자율주행 시작";
                     }));
                 }
             }
         }
+
+
 
         // MJPEG 스트림 읽기 (SOI/EOI로 프레임 분리)
         private async Task RunMjpegStream(string url, System.Threading.CancellationToken token)
