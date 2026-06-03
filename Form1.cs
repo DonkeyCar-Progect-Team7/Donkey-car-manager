@@ -116,10 +116,10 @@ namespace Donkey_car_manager
                         {
                             if (aiPictureBox != null)
                             {
-                               
+
                                 aiPictureBox.Image = null;
-                             
-                               
+
+
                             }
                         }
                         catch { }
@@ -547,9 +547,9 @@ namespace Donkey_car_manager
         private int multiStartIndex = -1;
         private int multiEndIndex = -1;
 
-    
 
-     
+
+
         private void UpdateRangeHighlight()
         {
             if (multiStartIndex == -1 ||
@@ -593,7 +593,7 @@ namespace Donkey_car_manager
 
             panelRange.BringToFront();
 
-            
+
         }
 
         private void trbFrame_MouseDown(
@@ -1701,6 +1701,21 @@ namespace Donkey_car_manager
 
                     MessageBox.Show($"시뮬레이터 경로가 지정되었습니다:\n{selectedSimFilePath}", "경로 지정 완료", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
+            }
+        }
+
+        private void btnReset_Click(object sender, EventArgs e)
+        {
+            // 사용자에게 진짜 초기화할 것인지 확인 (선택 사항)
+            DialogResult result = MessageBox.Show("앱을 초기화하고 다시 시작하시겠습니까?", "알림", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+
+            if (result == DialogResult.Yes)
+            {
+                // 애플리케이션 재시작
+                Application.Restart();
+
+                // 현재 프로세스 완전히 종료 (안전을 위해 추가)
+                Environment.Exit(0);
             }
         }
     }

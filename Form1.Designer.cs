@@ -57,6 +57,7 @@
             btnSelectSim = new Button();
             panelRange = new Panel();
             btnStartAuto = new Button();
+            btnReset = new Button();
             ((System.ComponentModel.ISupportInitialize)trbFrame).BeginInit();
             ((System.ComponentModel.ISupportInitialize)picCurFrame).BeginInit();
             ((System.ComponentModel.ISupportInitialize)dgvDebug).BeginInit();
@@ -78,7 +79,7 @@
             // 
             btnFileOpen.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
             btnFileOpen.BackColor = Color.FromArgb(255, 255, 128);
-            btnFileOpen.FlatStyle = FlatStyle.Flat;
+            btnFileOpen.FlatStyle = FlatStyle.Popup;
             btnFileOpen.Font = new Font("맑은 고딕", 15.75F);
             btnFileOpen.ForeColor = Color.FromArgb(0, 0, 64);
             btnFileOpen.Location = new Point(908, 286);
@@ -105,7 +106,7 @@
             // 
             btnFileDelete.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
             btnFileDelete.BackColor = Color.IndianRed;
-            btnFileDelete.FlatStyle = FlatStyle.Flat;
+            btnFileDelete.FlatStyle = FlatStyle.Popup;
             btnFileDelete.Font = new Font("맑은 고딕", 15.75F);
             btnFileDelete.ForeColor = Color.White;
             btnFileDelete.Location = new Point(908, 343);
@@ -133,7 +134,7 @@
             // 
             btnFrameMove.Anchor = AnchorStyles.Top | AnchorStyles.Right;
             btnFrameMove.BackColor = Color.LightSteelBlue;
-            btnFrameMove.FlatStyle = FlatStyle.Flat;
+            btnFrameMove.FlatStyle = FlatStyle.Popup;
             btnFrameMove.Font = new Font("맑은 고딕", 8.25F, FontStyle.Regular, GraphicsUnit.Point, 129);
             btnFrameMove.ForeColor = Color.FromArgb(0, 0, 64);
             btnFrameMove.Location = new Point(1037, 12);
@@ -187,7 +188,7 @@
             lblFrameNum.BackColor = Color.Transparent;
             lblFrameNum.Font = new Font("맑은 고딕", 11.25F, FontStyle.Regular, GraphicsUnit.Point, 129);
             lblFrameNum.ForeColor = Color.Silver;
-            lblFrameNum.Location = new Point(12, 47);
+            lblFrameNum.Location = new Point(12, 86);
             lblFrameNum.Name = "lblFrameNum";
             lblFrameNum.Size = new Size(97, 20);
             lblFrameNum.TabIndex = 9;
@@ -197,7 +198,7 @@
             // 
             btnFileMultiDel.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
             btnFileMultiDel.BackColor = Color.IndianRed;
-            btnFileMultiDel.FlatStyle = FlatStyle.Flat;
+            btnFileMultiDel.FlatStyle = FlatStyle.Popup;
             btnFileMultiDel.Font = new Font("맑은 고딕", 15.75F);
             btnFileMultiDel.ForeColor = Color.White;
             btnFileMultiDel.Location = new Point(908, 400);
@@ -224,7 +225,7 @@
             // 
             btnAutoPic.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
             btnAutoPic.BackColor = SystemColors.ControlLight;
-            btnAutoPic.FlatStyle = FlatStyle.Flat;
+            btnAutoPic.FlatStyle = FlatStyle.Popup;
             btnAutoPic.Font = new Font("맑은 고딕", 15.75F);
             btnAutoPic.ForeColor = Color.FromArgb(0, 0, 64);
             btnAutoPic.Location = new Point(18, 315);
@@ -301,7 +302,7 @@
             // 
             btnStartCollection.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
             btnStartCollection.BackColor = Color.Lime;
-            btnStartCollection.FlatStyle = FlatStyle.Flat;
+            btnStartCollection.FlatStyle = FlatStyle.Popup;
             btnStartCollection.Font = new Font("맑은 고딕", 11.25F, FontStyle.Regular, GraphicsUnit.Point, 129);
             btnStartCollection.ForeColor = Color.FromArgb(0, 0, 64);
             btnStartCollection.Location = new Point(18, 258);
@@ -316,7 +317,7 @@
             // 
             btnStartLearning.Anchor = AnchorStyles.Top | AnchorStyles.Right;
             btnStartLearning.BackColor = Color.FromArgb(255, 255, 128);
-            btnStartLearning.FlatStyle = FlatStyle.Flat;
+            btnStartLearning.FlatStyle = FlatStyle.Popup;
             btnStartLearning.Font = new Font("맑은 고딕", 15.75F);
             btnStartLearning.ForeColor = Color.FromArgb(0, 0, 64);
             btnStartLearning.Location = new Point(908, 86);
@@ -363,7 +364,7 @@
             // 
             btnSelectSim.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
             btnSelectSim.BackColor = Color.Lime;
-            btnSelectSim.FlatStyle = FlatStyle.Flat;
+            btnSelectSim.FlatStyle = FlatStyle.Popup;
             btnSelectSim.Font = new Font("맑은 고딕", 11.25F, FontStyle.Regular, GraphicsUnit.Point, 129);
             btnSelectSim.ForeColor = Color.FromArgb(0, 0, 64);
             btnSelectSim.Location = new Point(122, 258);
@@ -385,7 +386,9 @@
             // btnStartAuto
             // 
             btnStartAuto.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
-            btnStartAuto.Font = new Font("Segoe UI Black", 19.8000011F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            btnStartAuto.BackColor = Color.DeepSkyBlue;
+            btnStartAuto.FlatStyle = FlatStyle.Popup;
+            btnStartAuto.Font = new Font("맑은 고딕", 15.75F, FontStyle.Bold, GraphicsUnit.Point, 129);
             btnStartAuto.ForeColor = Color.Black;
             btnStartAuto.Location = new Point(907, 219);
             btnStartAuto.Margin = new Padding(3, 2, 3, 2);
@@ -393,8 +396,23 @@
             btnStartAuto.Size = new Size(212, 62);
             btnStartAuto.TabIndex = 28;
             btnStartAuto.Text = "자율주행 시작";
-            btnStartAuto.UseVisualStyleBackColor = true;
+            btnStartAuto.UseVisualStyleBackColor = false;
             btnStartAuto.Click += button1_Click;
+            // 
+            // btnReset
+            // 
+            btnReset.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            btnReset.BackColor = Color.Black;
+            btnReset.FlatStyle = FlatStyle.Popup;
+            btnReset.Font = new Font("맑은 고딕", 20.25F, FontStyle.Bold, GraphicsUnit.Point, 129);
+            btnReset.ForeColor = Color.Red;
+            btnReset.Location = new Point(12, 28);
+            btnReset.Name = "btnReset";
+            btnReset.Size = new Size(211, 51);
+            btnReset.TabIndex = 29;
+            btnReset.Text = "초기화";
+            btnReset.UseVisualStyleBackColor = false;
+            btnReset.Click += btnReset_Click;
             // 
             // Form1
             // 
@@ -402,6 +420,7 @@
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = Color.FromArgb(0, 0, 64);
             ClientSize = new Size(1129, 919);
+            Controls.Add(btnReset);
             Controls.Add(btnStartAuto);
             Controls.Add(panelRange);
             Controls.Add(btnSelectSim);
@@ -466,5 +485,6 @@
         private Button btnSelectSim;
         private Panel panelRange;
         private Button btnStartAuto;
+        private Button btnReset;
     }
 }
