@@ -326,19 +326,29 @@ namespace Donkey_car_manager
             this.Shown += Form1_Shown;
             // 파일을 열기 전에는 visible range 라벨을 숨김
             try { if (lblFilenumber != null) lblFilenumber.Visible = false; } catch { }
+            // Delete 키로 선택된 파일을 삭제할 수 있도록 폼에서 키 프리뷰를 허용하고 핸들러 등록
+            this.KeyPreview = true;
+            this.KeyDown += Form1_KeyDown;
         }
-        protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+        // 폼 KeyDown 핸들러: Delete 키로 선택된 파일 삭제 트리거
+        private void Form1_KeyDown(object sender, KeyEventArgs e)
         {
-            // 사용자가 키보드에서 'Delete' 키를 누르면 
-            // 리스트뷰에 포커스가 있든 없든 무조건 삭제 버튼 클릭 함수를 강제로 실행시킵니다.
-            if (keyData == Keys.Delete)
+            // Delete 키가 아닐 경우 무시
+            if (e.KeyCode != Keys.Delete) return;
+
+            // 텍스트 입력창 등에서 Delete가 눌렸을 때 기본 동작을 방해하지 않도록 예외 처리
+            if (this.ActiveControl is System.Windows.Forms.TextBoxBase || this.ActiveControl is System.Windows.Forms.ComboBox || this.ActiveControl is System.Windows.Forms.NumericUpDown)
             {
-                // 삭제 버튼 클릭 이벤트 직접 호출
-                btnFileDelete_Click(this, EventArgs.Empty);
-                return true; // 키 입력 처리 완료 (다른 컨트롤로 키가 흘러가는 것을 방지)
+                return;
             }
 
-            return base.ProcessCmdKey(ref msg, keyData);
+            // 선택된 항목이 있으면 기존의 다중 삭제 버튼 클릭 핸들러를 호출하여 동일한 동작 수행
+            bool hasSelected = (selectedGlobalIndices != null && selectedGlobalIndices.Count > 0) || (lstFiles != null && lstFiles.SelectedIndices.Count > 0);
+            if (hasSelected)
+            {
+                try { btnFileMultiDel_Click(btnFileMultiDel, EventArgs.Empty); } catch { }
+                e.Handled = true;
+            }
         }
         // 동키카 그래프를 위한 코드
         private Chart chartDriveData; // 전역 변수로 차트 선언
