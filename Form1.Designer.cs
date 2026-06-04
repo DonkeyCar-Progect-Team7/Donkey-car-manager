@@ -58,7 +58,7 @@
             panelRange = new Panel();
             btnStartAuto = new Button();
             btnReset = new Button();
-            label2 = new Label();
+            lblFilenumber = new Label();
             ((System.ComponentModel.ISupportInitialize)trbFrame).BeginInit();
             ((System.ComponentModel.ISupportInitialize)picCurFrame).BeginInit();
             ((System.ComponentModel.ISupportInitialize)dgvDebug).BeginInit();
@@ -435,14 +435,14 @@
             btnReset.UseVisualStyleBackColor = false;
             btnReset.Click += btnReset_Click;
             // 
-            // label2
+            // lblFilenumber
             // 
-            label2.AutoSize = true;
-            label2.Location = new Point(628, 546);
-            label2.Name = "label2";
-            label2.Size = new Size(50, 20);
-            label2.TabIndex = 30;
-            label2.Text = "label2";
+            lblFilenumber.AutoSize = true;
+            lblFilenumber.Location = new Point(628, 546);
+            lblFilenumber.Name = "lblFilenumber";
+            lblFilenumber.Size = new Size(73, 20);
+            lblFilenumber.TabIndex = 30;
+            lblFilenumber.Text = "선택 없음";
             // 
             // Form1
             // 
@@ -450,7 +450,7 @@
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = Color.FromArgb(0, 0, 64);
             ClientSize = new Size(1290, 1055);
-            Controls.Add(label2);
+            Controls.Add(lblFilenumber);
             Controls.Add(btnReset);
             Controls.Add(btnStartAuto);
             Controls.Add(panelRange);
@@ -518,6 +518,6 @@
         private Panel panelRange;
         private Button btnStartAuto;
         private Button btnReset;
-        private Label label2;
+        private Label lblFilenumber;
     }
 }

@@ -278,7 +278,7 @@ namespace Donkey_car_manager
             // Ensure chart is brought to front after form is shown and report status
             this.Shown += Form1_Shown;
             // 파일을 열기 전에는 visible range 라벨을 숨김
-            try { if (label2 != null) label2.Visible = false; } catch { }
+            try { if (lblFilenumber != null) lblFilenumber.Visible = false; } catch { }
         }
         // 동키카 그래프를 위한 코드
         private Chart chartDriveData; // 전역 변수로 차트 선언
@@ -614,7 +614,7 @@ namespace Donkey_car_manager
             int total = carImages?.Count ?? 0;
             if (total == 0)
             {
-                try { if (label2 != null) label2.Text = "0 ~ 0"; } catch { }
+                try { if (lblFilenumber != null) lblFilenumber.Text = "0 ~ 0"; } catch { }
                 return;
             }
 
@@ -623,7 +623,7 @@ namespace Donkey_car_manager
             int shownCount = lstFiles?.Items?.Count ?? 0;
             if (shownCount <= 0)
             {
-                try { if (label2 != null) label2.Text = "0 ~ 0"; } catch { }
+                try { if (lblFilenumber != null) lblFilenumber.Text = "0 ~ 0"; } catch { }
                 return;
             }
 
@@ -634,7 +634,47 @@ namespace Donkey_car_manager
             lastShown = Math.Max(0, Math.Min(total - 1, lastShown));
 
             string text = $"{firstShown + 1} ~ {lastShown + 1}";
-            try { if (label2 != null) label2.Text = text; } catch { }
+            try { if (lblFilenumber != null) lblFilenumber.Text = text; } catch { }
+        }
+
+        // selectedGlobalIndices 기반으로 lblFilenumber에 선택된 파일 번호를 표시
+        private void UpdateSelectedFileLabel()
+        {
+            if (lblFilenumber == null) return;
+
+            if (selectedGlobalIndices == null || selectedGlobalIndices.Count == 0)
+            {
+                // 선택된 항목이 없으면 기본 visible range 표시
+                UpdateVisibleRangeLabel();
+                return;
+            }
+
+            var sorted = selectedGlobalIndices.OrderBy(i => i).ToList();
+            int count = sorted.Count;
+            int first = sorted.First();
+            int last = sorted.Last();
+
+            string text;
+            if (last - first + 1 == count)
+            {
+                // 연속적인 범위일 때
+                text = $"{first + 1} ~ {last + 1}";
+            }
+            else
+            {
+                // 비연속일 때: 최대 10개까지 나열, 나머지는 개수로 표시
+                var preview = sorted.Take(10).Select(i => (i + 1).ToString()).ToArray();
+                if (count <= 10)
+                {
+                    text = string.Join(",", preview);
+                }
+                else
+                {
+                    text = string.Join(",", preview) + $" ... ({count})";
+                }
+            }
+
+            try { lblFilenumber.Text = text; } catch { }
         }
 
         private void trbFrame_MouseDown(
@@ -695,6 +735,8 @@ namespace Donkey_car_manager
                 }
 
                 UpdateRangeHighlight();
+                // 선택 라벨 갱신
+                UpdateSelectedFileLabel();
             }
             else
             {
@@ -708,6 +750,9 @@ namespace Donkey_car_manager
                 multiStartIndex = -1;
                 multiEndIndex = -1;
                 panelRange.Visible = false;
+
+                // 선택 라벨 갱신
+                UpdateSelectedFileLabel();
 
                 // 정상 클릭 동작: 트랙바 위치로 이미지와 리스트 동기화
                 try { trbFrame_Scroll(trbFrame, EventArgs.Empty); } catch { }
@@ -747,10 +792,12 @@ namespace Donkey_car_manager
             // 라벨 업데이트
             lblCurFilePage.Text = $"{currentPage + 1} / {totalPages}";
             // visible range 라벨 갱신 (lstFiles에 표시된 항목 기준)
-            try { if (label2 != null) label2.Visible = true; } catch { }
+            try { if (lblFilenumber != null) lblFilenumber.Visible = true; } catch { }
             UpdateVisibleRangeLabel();
             // 트랙바 위의 범위 표시도 갱신
             UpdateRangeHighlight();
+            // 선택된 파일 라벨 갱신
+            UpdateSelectedFileLabel();
         }
 
         private void btnPageUp_Click(object sender, EventArgs e)
@@ -1342,6 +1389,8 @@ namespace Donkey_car_manager
                 // 선택 해제되었다면 바구니에서 제거
                 selectedGlobalIndices.Remove(globalIndex);
             }
+            // 선택 라벨 갱신
+            UpdateSelectedFileLabel();
         }
 
         // 2. 디자이너 매핑 안정성을 위한 서브 이벤트
