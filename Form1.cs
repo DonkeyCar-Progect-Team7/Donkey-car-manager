@@ -1046,68 +1046,104 @@ namespace Donkey_car_manager
             // 자동 재생 중이면 안전을 위해 잠시 멈춤
             if (isPlaying) StopAutoPlay(); //
 
-            // 2. 리스트뷰와 관계없이 트랙바가 가리키는 현재 전역 인덱스를 무조건 타겟으로 지정
+            // 2. 현재 트랙바/화면이 가리키는 전역 인덱스 및 파일 정보 추출
             int globalIndex = currentImageIndex;
             string targetFilePath = carImages[globalIndex].FilePath; //
-            string fileName = Path.GetFileName(targetFilePath);
+            string fileName = Path.GetFileName(targetFilePath); // 예: "123_cam-image_array.jpg"
+            string targetDirectory = Path.GetDirectoryName(targetFilePath); // 현재 데이터 폴더 경로
 
             // 3. 사용자 확인 다이얼로그 출력
             DialogResult result = MessageBox.Show(
-                $"현재 화면(트랙바 위치)의 프레임({fileName})을 정말로 삭제하시겠습니까?\n디스크에서 파일이 영구히 삭제됩니다.",
-                "파일 삭제 확인",
+                $"현재 프레임({fileName})을 삭제하시겠습니까?\n이미지 디스크 삭제 및 카탈로그 레코드 수정이 동시에 진행됩니다.",
+                "동키카 프레임 영구 삭제",
                 MessageBoxButtons.YesNo,
                 MessageBoxIcon.Warning); //
 
             if (result == DialogResult.Yes) //
             {
-                // 🌟 [핵심 차단] UI를 새로고침할 때 부메랑처럼 돌아오는 이벤트 핸들러들을 일시적으로 제거합니다.
+                // UI 이벤트 핸들러 일시 차단 (동작 꼬임 방지)
                 this.lstFiles.SelectedIndexChanged -= new System.EventHandler(this.lstFiles_SelectedIndexChanged);
                 this.lstFiles.ItemSelectionChanged -= new System.Windows.Forms.ListViewItemSelectionChangedEventHandler(this.lstFiles_ItemSelectionChanged);
                 this.txbFileNum.TextChanged -= new System.EventHandler(this.txbFileNum_TextChanged);
 
                 try
                 {
-                    // 4. 픽처박스가 이미지 파일을 붙잡고 있어 발생하는 Windows 파일 잠금(Lock) 에러 원천 차단
+                    // 4. 픽처박스 파일 잠금(Lock) 해제
                     if (picCurFrame.Image != null) //
                     {
                         picCurFrame.Image.Dispose(); //
                         picCurFrame.Image = null; //
                     }
-
-                    // 가비지 컬렉터를 즉시 호출하여 파일 스트림 결합을 완벽하게 해제
                     GC.Collect();
                     GC.WaitForPendingFinalizers();
 
-                    // 5. 실제 하드디스크에서 이미지 파일 제거
+                    // 5. [추가 핵심] 카탈로그(catalog_X.catalog) 파일 수정 로직
+                    if (Directory.Exists(targetDirectory))
+                    {
+                        // 폴더 내의 모든 .catalog 파일들을 탐색합니다.
+                        string[] catalogFiles = Directory.GetFiles(targetDirectory, "catalog_*.catalog");
+                        bool recordDeleted = false;
+
+                        foreach (string catalogPath in catalogFiles)
+                        {
+                            if (File.Exists(catalogPath))
+                            {
+                                // 카탈로그 파일을 한 줄씩 전부 읽어옵니다.
+                                string[] lines = File.ReadAllLines(catalogPath, Encoding.UTF8);
+                                List<string> updatedLines = new List<string>();
+                                bool fileModified = false;
+
+                                foreach (string line in lines)
+                                {
+                                    // 삭제하려는 이미지 파일명(예: "123_cam-image_array.jpg")이 적힌 줄인지 검사
+                                    if (line.Contains(fileName))
+                                    {
+                                        // 일치하는 레코드를 찾으면 요 줄은 저장을 건너뜁니다 (즉, 카탈로그에서 제거)
+                                        fileModified = true;
+                                        recordDeleted = true;
+                                        continue;
+                                    }
+                                    updatedLines.Add(line);
+                                }
+
+                                // 변경 사항이 발생한 카탈로그 파일만 덮어쓰기 저장합니다.
+                                if (fileModified)
+                                {
+                                    File.WriteAllLines(catalogPath, updatedLines, Encoding.UTF8);
+                                }
+                            }
+                        }
+
+                        if (!recordDeleted)
+                        {
+                            System.Diagnostics.Debug.WriteLine("경고: 카탈로그 파일에서 해당 이미지의 메타데이터 레코드를 찾지 못했습니다.");
+                        }
+                    }
+
+                    // 6. 실제 하드디스크에서 이미지 파일 제거
                     if (System.IO.File.Exists(targetFilePath)) //
                     {
                         System.IO.File.Delete(targetFilePath); //
                     }
 
-                    // 6. 데이터 바구니(carImages)에서 데이터 행 제거
+                    // 7. C# 프로그램 내부 데이터 바구니(carImages)에서 삭제 처리
                     carImages.RemoveAt(globalIndex); //
 
-                    // 선택 기억용 바구니 초기화
                     if (selectedGlobalIndices != null) //
                     {
                         selectedGlobalIndices.Clear(); //
                     }
 
-                    // 7. 전체 페이지 수 및 트랙바(슬라이더) 범위 재계산
+                    // 8. 페이지 수 및 트랙바 범위 갱신
                     totalPages = (int)Math.Ceiling((double)carImages.Count / pageSize); //
-                    int maxTrackbarValue = Math.Max(0, carImages.Count - 1);
-                    trbFrame.Maximum = maxTrackbarValue; //
+                    trbFrame.Maximum = Math.Max(0, carImages.Count - 1); //
 
-                    // 8. 현재 보고 있던 인덱스가 지워졌으므로 범위를 넘어가지 않도록 보정
                     if (currentImageIndex >= carImages.Count) //
                     {
                         currentImageIndex = Math.Max(0, carImages.Count - 1); //
                     }
+                    currentPage = (carImages.Count > 0) ? (currentImageIndex / pageSize) : 0; //
 
-                    // 현재 인덱스에 맞춰 소속 페이지 계산
-                    currentPage = (carImages.Count > 0) ? (currentImageIndex / pageSize) : 0;
-
-                    // 9. 트랙바 위치 동기화
                     if (carImages.Count > 0) //
                     {
                         trbFrame.Value = currentImageIndex; //
@@ -1117,31 +1153,23 @@ namespace Donkey_car_manager
                         trbFrame.Value = 0; //
                     }
 
-                    // 10. 리스트뷰의 모든 선택 강제 해제 (유령 포커스 현상 방지)
+                    // 9. 화면 UI 새로고침
                     lstFiles.SelectedItems.Clear();
-
-                    // 11. 화면 UI 및 페이지 상태 새로고침
                     UpdateListPage(); //
 
-                    // 데이터가 아직 남아 있다면 다음 이미지 로드
                     if (carImages.Count > 0) //
                     {
                         ShowImage(currentImageIndex); //
-
-                        // 현재 페이지 리스트박스 내 항목 비주얼 초점 동기화
                         int localIndex = currentImageIndex % pageSize; //
                         if (localIndex >= 0 && localIndex < lstFiles.Items.Count) //
                         {
                             lstFiles.Items[localIndex].Focused = true; //
                             lstFiles.Items[localIndex].EnsureVisible(); //
-
-                            // 상단 라벨 및 텍스트 박스 동기화 메서드 직접 안전 호출
                             UpdatePageUI(localIndex); //
                         }
                     }
                     else
                     {
-                        // 모든 프레임이 지워졌을 때 라벨 초기화
                         lblFrameNum.Text = "프레임 번호 : 0 / 0"; //
                         if (lblFilenumber != null) lblFilenumber.Text = "0 ~ 0"; //
                         MessageBox.Show("폴더 내의 모든 프레임이 삭제되었습니다.", "알림", MessageBoxButtons.OK, MessageBoxIcon.Information); //
@@ -1149,12 +1177,12 @@ namespace Donkey_car_manager
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"파일 삭제 중 오류가 발생했습니다:\n{ex.Message}", "오류", MessageBoxButtons.OK, MessageBoxIcon.Error); //
+                    MessageBox.Show($"파일 삭제 및 카탈로그 갱신 중 오류 발생:\n{ex.Message}", "오류", MessageBoxButtons.OK, MessageBoxIcon.Error); //
                     if (carImages.Count > 0) ShowImage(currentImageIndex); //
                 }
                 finally
                 {
-                    // 🌟 [중요] 모든 삭제와 UI 갱신이 끝났으므로, 떼어놓았던 이벤트들을 다시 안전하게 연결합니다.
+                    // 이벤트 핸들러 재연결
                     this.lstFiles.SelectedIndexChanged += new System.EventHandler(this.lstFiles_SelectedIndexChanged);
                     this.lstFiles.ItemSelectionChanged += new System.Windows.Forms.ListViewItemSelectionChangedEventHandler(this.lstFiles_ItemSelectionChanged);
                     this.txbFileNum.TextChanged += new System.EventHandler(this.txbFileNum_TextChanged);
