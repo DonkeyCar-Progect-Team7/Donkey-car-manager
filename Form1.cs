@@ -42,7 +42,58 @@ namespace Donkey_car_manager
                     CancellationToken.None);
             }
         }
+        private void SyncListViewMultiSelection()
+        {
+            // 이미지 데이터나 리스트뷰가 비어있으면 동작 불필요
+            if (carImages == null || carImages.Count == 0 || lstFiles.Items.Count == 0) return;
 
+            // 🌟 윈폼 내부의 연쇄적인 이벤트 오작동을 차단하기 위해 리스트뷰 핸들러를 일시 해제합니다.
+            this.lstFiles.SelectedIndexChanged -= new System.EventHandler(this.lstFiles_SelectedIndexChanged);
+            this.lstFiles.ItemSelectionChanged -= new System.Windows.Forms.ListViewItemSelectionChangedEventHandler(this.lstFiles_ItemSelectionChanged);
+
+            // 리스트뷰 UI 레이아웃 업데이트 시작 (화면 깜빡임 원천 차단)
+            lstFiles.BeginUpdate();
+
+            try
+            {
+                // 1. 기존 화면에 선택된 리스트뷰 하이라이트를 완전히 깔끔하게 지웁니다.
+                lstFiles.SelectedItems.Clear();
+
+                // 현재 리스트뷰 페이지에 뿌려져 있는 전역 인덱스의 시작점과 끝점 계산
+                int pageStartIdx = currentPage * pageSize;
+                int pageEndIdx = pageStartIdx + lstFiles.Items.Count;
+
+                // 2. 다중 선택 바구니(selectedGlobalIndices)에 보관된 모든 인덱스를 순회
+                foreach (int globalIdx in selectedGlobalIndices)
+                {
+                    // 보관된 전역 인덱스가 '현재 떠 있는 화면 페이지'의 범위 안에 속하는지 검사
+                    if (globalIdx >= pageStartIdx && globalIdx < pageEndIdx)
+                    {
+                        // 현재 화면 내에서의 상대 인덱스(0 ~ 19번)로 역산
+                        int localIdx = globalIdx % pageSize;
+
+                        if (localIdx >= 0 && localIdx < lstFiles.Items.Count)
+                        {
+                            // 🌟 해당 리스트뷰 항목에 파란색 선택 불을 켭니다!
+                            lstFiles.Items[localIdx].Selected = true;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"다중선택 동기화 실패: {ex.Message}");
+            }
+            finally
+            {
+                // 레이아웃 업데이트 종료 및 그래픽 반영
+                lstFiles.EndUpdate();
+
+                // 🌟 작업이 완벽히 완료되었으므로 안전하게 이벤트를 다시 연결합니다.
+                this.lstFiles.SelectedIndexChanged += new System.EventHandler(this.lstFiles_SelectedIndexChanged);
+                this.lstFiles.ItemSelectionChanged += new System.Windows.Forms.ListViewItemSelectionChangedEventHandler(this.lstFiles_ItemSelectionChanged);
+            }
+        }
 
         // AI 스트리밍 전역 변수
         private System.Threading.CancellationTokenSource aiStreamCts;
@@ -53,11 +104,6 @@ namespace Donkey_car_manager
         // button1 클릭 이벤트: 토글형으로 aiPictureBox 생성/스트림 시작 또는 중지/제거
         private async void button1_Click(object sender, EventArgs e)
         {
-
-
-
-
-
             if (!aiStreaming)
             {
                 aiPictureBox = picCurFrame;
@@ -269,6 +315,7 @@ namespace Donkey_car_manager
         {
             InitializeComponent();
             this.lstFiles.MouseWheel += new MouseEventHandler(lstFiles_MouseWheel);
+            this.lstFiles.HideSelection = false;
             // 🌟 픽처박스의 깜빡임과 이미지 튀는 현상을 방지하는 더블 버퍼링 활성화
             System.Reflection.PropertyInfo aProp = typeof(System.Windows.Forms.Control)
                 .GetProperty("DoubleBuffered", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
@@ -279,6 +326,19 @@ namespace Donkey_car_manager
             this.Shown += Form1_Shown;
             // 파일을 열기 전에는 visible range 라벨을 숨김
             try { if (lblFilenumber != null) lblFilenumber.Visible = false; } catch { }
+        }
+        protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+        {
+            // 사용자가 키보드에서 'Delete' 키를 누르면 
+            // 리스트뷰에 포커스가 있든 없든 무조건 삭제 버튼 클릭 함수를 강제로 실행시킵니다.
+            if (keyData == Keys.Delete)
+            {
+                // 삭제 버튼 클릭 이벤트 직접 호출
+                btnFileDelete_Click(this, EventArgs.Empty);
+                return true; // 키 입력 처리 완료 (다른 컨트롤로 키가 흘러가는 것을 방지)
+            }
+
+            return base.ProcessCmdKey(ref msg, keyData);
         }
         // 동키카 그래프를 위한 코드
         private Chart chartDriveData; // 전역 변수로 차트 선언
@@ -677,85 +737,74 @@ namespace Donkey_car_manager
             try { lblFilenumber.Text = text; } catch { }
         }
 
-        private void trbFrame_MouseDown(
-    object sender,
-    MouseEventArgs e)
+        private void trbFrame_MouseDown(object sender, MouseEventArgs e)
         {
-            panelRange.Height = 6;
-            panelRange.BackColor = Color.DeepSkyBlue;
-            int newValue =
-                trbFrame.Minimum +
-                (trbFrame.Maximum - trbFrame.Minimum)
-                * e.X / trbFrame.Width;
+            panelRange.Height = 6; //
+            panelRange.BackColor = Color.DeepSkyBlue; //
 
-            trbFrame.Value = Math.Max(
-                trbFrame.Minimum,
-                Math.Min(
-                    trbFrame.Maximum,
-                    newValue));
+            int newValue = trbFrame.Minimum + (trbFrame.Maximum - trbFrame.Minimum) * e.X / trbFrame.Width; //
 
-            if ((ModifierKeys & Keys.Shift) == Keys.Shift)
+            trbFrame.Value = Math.Max(trbFrame.Minimum, Math.Min(trbFrame.Maximum, newValue)); //
+
+            if ((ModifierKeys & Keys.Shift) == Keys.Shift) //
             {
-                if (multiStartIndex == -1)
+                if (multiStartIndex == -1) //
                 {
                     // 첫 번째 클릭: 새로 시작하므로 이전 선택 모두 초기화
-                    selectedGlobalIndices.Clear();
-                    committedRangeStart = -1;
-                    committedRangeEnd = -1;
-                    // 시작 인덱스 설정
-                    multiStartIndex = newValue;
+                    selectedGlobalIndices.Clear(); //
+                    committedRangeStart = -1; //
+                    committedRangeEnd = -1; //
+                                            // 시작 인덱스 설정
+                    multiStartIndex = newValue; //
                 }
                 else
                 {
                     // 두 번째 클릭: 범위 확정
-                    multiEndIndex = newValue;
+                    multiEndIndex = newValue; //
 
-                    int start = Math.Min(multiStartIndex, multiEndIndex);
-                    int end = Math.Max(multiStartIndex, multiEndIndex);
+                    int start = Math.Min(multiStartIndex, multiEndIndex); //
+                    int end = Math.Max(multiStartIndex, multiEndIndex); //
 
                     // 선택 범위의 모든 전역 인덱스를 selectedGlobalIndices에 추가
-                    for (int gi = start; gi <= end; gi++)
+                    for (int gi = start; gi <= end; gi++) //
                     {
-                        if (gi >= 0 && gi < (carImages?.Count ?? 0))
+                        if (gi >= 0 && gi < (carImages?.Count ?? 0)) //
                         {
-                            selectedGlobalIndices.Add(gi);
+                            selectedGlobalIndices.Add(gi); //
                         }
                     }
 
-                    // 리스트 갱신하여 선택 상태 반영
-                    UpdateListPage();
-
                     // 커밋된 범위로 보관하여 시각적으로 표시
-                    committedRangeStart = start;
-                    committedRangeEnd = end;
+                    committedRangeStart = start; //
+                    committedRangeEnd = end; //
 
                     // 다음 선택을 위해 임시 시작 인덱스 초기화
-                    multiStartIndex = -1;
-                    multiEndIndex = -1;
+                    multiStartIndex = -1; //
+                    multiEndIndex = -1; //
+
+                    // 🌟 [수정] 전체를 매번 다 그리는 UpdateListPage() 대신, 리스트뷰에 선택 불만 켭니다.
+                    SyncListViewMultiSelection();
                 }
 
-                UpdateRangeHighlight();
-                // 선택 라벨 갱신
-                UpdateSelectedFileLabel();
+                UpdateRangeHighlight(); //
+                UpdateSelectedFileLabel(); //
             }
             else
             {
                 // Shift가 눌려있지 않은 일반 클릭: 이전의 다중 선택을 취소
-                if (selectedGlobalIndices != null && selectedGlobalIndices.Count > 0)
+                if (selectedGlobalIndices != null && selectedGlobalIndices.Count > 0) //
                 {
-                    selectedGlobalIndices.Clear();
+                    selectedGlobalIndices.Clear(); //
                 }
-                committedRangeStart = -1;
-                committedRangeEnd = -1;
-                multiStartIndex = -1;
-                multiEndIndex = -1;
-                panelRange.Visible = false;
+                committedRangeStart = -1; //
+                committedRangeEnd = -1; //
+                multiStartIndex = -1; //
+                multiEndIndex = -1; //
+                panelRange.Visible = false; //
 
-                // 선택 라벨 갱신
-                UpdateSelectedFileLabel();
+                UpdateSelectedFileLabel(); //
 
-                // 정상 클릭 동작: 트랙바 위치로 이미지와 리스트 동기화
-                try { trbFrame_Scroll(trbFrame, EventArgs.Empty); } catch { }
+                try { trbFrame_Scroll(trbFrame, EventArgs.Empty); } catch { } //
             }
         }
         private void UpdateListPage()
@@ -798,6 +847,7 @@ namespace Donkey_car_manager
             UpdateRangeHighlight();
             // 선택된 파일 라벨 갱신
             UpdateSelectedFileLabel();
+            SyncListViewMultiSelection();
         }
 
         private void btnPageUp_Click(object sender, EventArgs e)
@@ -976,74 +1026,128 @@ namespace Donkey_car_manager
         }
         private void btnFileDelete_Click(object sender, EventArgs e)
         {
-            // 1. 리스트뷰에서 선택된 항목이 있는지 확인
-            if (lstFiles.SelectedItems.Count == 0)
+            // 1. 이미지 데이터 바구니(carImages) 상태 확인 및 범위 검사
+            if (carImages == null || carImages.Count == 0 || currentImageIndex < 0 || currentImageIndex >= carImages.Count)
             {
-                MessageBox.Show("삭제할 프레임을 리스트뷰에서 선택해 주세요.", "알림", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("삭제할 프레임 이미지가 로드되지 않았거나 선택되지 않았습니다.", "알림", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            // 자동 재생 중이면 잠시 멈춤
-            if (isPlaying) StopAutoPlay();
+            // 자동 재생 중이면 안전을 위해 잠시 멈춤
+            if (isPlaying) StopAutoPlay(); //
 
-            // 2. 현재 선택된 아이템의 '번호(순번)'를 가져와 실제 데이터 인덱스로 역산
-            ListViewItem selectedItem = lstFiles.SelectedItems[0];
-            int globalIndex = int.Parse(selectedItem.Text) - 1;
+            // 2. 리스트뷰와 관계없이 트랙바가 가리키는 현재 전역 인덱스를 무조건 타겟으로 지정
+            int globalIndex = currentImageIndex;
+            string targetFilePath = carImages[globalIndex].FilePath; //
+            string fileName = Path.GetFileName(targetFilePath);
 
-            if (globalIndex < 0 || globalIndex >= carImages.Count) return;
-
-            string targetFilePath = carImages[globalIndex].FilePath;
-
-            // 3. 사용자에게 진짜 지울지 확인
+            // 3. 사용자 확인 다이얼로그 출력
             DialogResult result = MessageBox.Show(
-                $"선택한 프레임({selectedItem.SubItems[1].Text})을 정말로 삭제하시겠습니까?\n디스크에서 파일이 영구히 삭제됩니다.",
+                $"현재 화면(트랙바 위치)의 프레임({fileName})을 정말로 삭제하시겠습니까?\n디스크에서 파일이 영구히 삭제됩니다.",
                 "파일 삭제 확인",
                 MessageBoxButtons.YesNo,
-                MessageBoxIcon.Warning);
+                MessageBoxIcon.Warning); //
 
-            if (result == DialogResult.Yes)
+            if (result == DialogResult.Yes) //
             {
+                // 🌟 [핵심 차단] UI를 새로고침할 때 부메랑처럼 돌아오는 이벤트 핸들러들을 일시적으로 제거합니다.
+                this.lstFiles.SelectedIndexChanged -= new System.EventHandler(this.lstFiles_SelectedIndexChanged);
+                this.lstFiles.ItemSelectionChanged -= new System.Windows.Forms.ListViewItemSelectionChangedEventHandler(this.lstFiles_ItemSelectionChanged);
+                this.txbFileNum.TextChanged -= new System.EventHandler(this.txbFileNum_TextChanged);
+
                 try
                 {
-                    // 4. 픽처박스가 파일을 붙잡고 있어서 생기는 삭제 에러(유령 프레임 원인) 방지
-                    if (picCurFrame.Image != null)
+                    // 4. 픽처박스가 이미지 파일을 붙잡고 있어 발생하는 Windows 파일 잠금(Lock) 에러 원천 차단
+                    if (picCurFrame.Image != null) //
                     {
-                        picCurFrame.Image.Dispose();
-                        picCurFrame.Image = null;
+                        picCurFrame.Image.Dispose(); //
+                        picCurFrame.Image = null; //
                     }
 
-                    // 5. 실제 하드디스크에서 이미지 파일 삭제
-                    if (System.IO.File.Exists(targetFilePath))
+                    // 가비지 컬렉터를 즉시 호출하여 파일 스트림 결합을 완벽하게 해제
+                    GC.Collect();
+                    GC.WaitForPendingFinalizers();
+
+                    // 5. 실제 하드디스크에서 이미지 파일 제거
+                    if (System.IO.File.Exists(targetFilePath)) //
                     {
-                        System.IO.File.Delete(targetFilePath);
+                        System.IO.File.Delete(targetFilePath); //
                     }
 
-                    // 6. 데이터 바구니(carImages)에서 제거
-                    carImages.RemoveAt(globalIndex);
+                    // 6. 데이터 바구니(carImages)에서 데이터 행 제거
+                    carImages.RemoveAt(globalIndex); //
 
-                    // 7. 데이터 개수 기반 전체 페이지 및 트랙바 범위 재계산
-                    totalPages = (int)Math.Ceiling((double)carImages.Count / pageSize);
-                    trbFrame.Maximum = Math.Max(0, carImages.Count - 1);
-
-                    // 8. 현재 인덱스가 범위를 벗어나지 않도록 보정
-                    if (currentImageIndex >= carImages.Count)
+                    // 선택 기억용 바구니 초기화
+                    if (selectedGlobalIndices != null) //
                     {
-                        currentImageIndex = Math.Max(0, carImages.Count - 1);
+                        selectedGlobalIndices.Clear(); //
                     }
-                    currentPage = currentImageIndex / pageSize;
 
-                    // 9. 화면 즉시 새로고침 (리스트뷰와 이미지 뷰어)
-                    UpdateListPage();
-                    ShowImage(currentImageIndex);
+                    // 7. 전체 페이지 수 및 트랙바(슬라이더) 범위 재계산
+                    totalPages = (int)Math.Ceiling((double)carImages.Count / pageSize); //
+                    int maxTrackbarValue = Math.Max(0, carImages.Count - 1);
+                    trbFrame.Maximum = maxTrackbarValue; //
 
-                    MessageBox.Show("프레임이 성공적으로 삭제되었습니다.", "완료", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    // 8. 현재 보고 있던 인덱스가 지워졌으므로 범위를 넘어가지 않도록 보정
+                    if (currentImageIndex >= carImages.Count) //
+                    {
+                        currentImageIndex = Math.Max(0, carImages.Count - 1); //
+                    }
+
+                    // 현재 인덱스에 맞춰 소속 페이지 계산
+                    currentPage = (carImages.Count > 0) ? (currentImageIndex / pageSize) : 0;
+
+                    // 9. 트랙바 위치 동기화
+                    if (carImages.Count > 0) //
+                    {
+                        trbFrame.Value = currentImageIndex; //
+                    }
+                    else
+                    {
+                        trbFrame.Value = 0; //
+                    }
+
+                    // 10. 리스트뷰의 모든 선택 강제 해제 (유령 포커스 현상 방지)
+                    lstFiles.SelectedItems.Clear();
+
+                    // 11. 화면 UI 및 페이지 상태 새로고침
+                    UpdateListPage(); //
+
+                    // 데이터가 아직 남아 있다면 다음 이미지 로드
+                    if (carImages.Count > 0) //
+                    {
+                        ShowImage(currentImageIndex); //
+
+                        // 현재 페이지 리스트박스 내 항목 비주얼 초점 동기화
+                        int localIndex = currentImageIndex % pageSize; //
+                        if (localIndex >= 0 && localIndex < lstFiles.Items.Count) //
+                        {
+                            lstFiles.Items[localIndex].Focused = true; //
+                            lstFiles.Items[localIndex].EnsureVisible(); //
+
+                            // 상단 라벨 및 텍스트 박스 동기화 메서드 직접 안전 호출
+                            UpdatePageUI(localIndex); //
+                        }
+                    }
+                    else
+                    {
+                        // 모든 프레임이 지워졌을 때 라벨 초기화
+                        lblFrameNum.Text = "프레임 번호 : 0 / 0"; //
+                        if (lblFilenumber != null) lblFilenumber.Text = "0 ~ 0"; //
+                        MessageBox.Show("폴더 내의 모든 프레임이 삭제되었습니다.", "알림", MessageBoxButtons.OK, MessageBoxIcon.Information); //
+                    }
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"파일 삭제 중 에러가 발생했습니다:\n{ex.Message}", "오류", MessageBoxButtons.OK, MessageBoxIcon.Error);
-
-                    // 에러가 나더라도 이미지는 다시 안전하게 띄워주기
-                    ShowImage(currentImageIndex);
+                    MessageBox.Show($"파일 삭제 중 오류가 발생했습니다:\n{ex.Message}", "오류", MessageBoxButtons.OK, MessageBoxIcon.Error); //
+                    if (carImages.Count > 0) ShowImage(currentImageIndex); //
+                }
+                finally
+                {
+                    // 🌟 [중요] 모든 삭제와 UI 갱신이 끝났으므로, 떼어놓았던 이벤트들을 다시 안전하게 연결합니다.
+                    this.lstFiles.SelectedIndexChanged += new System.EventHandler(this.lstFiles_SelectedIndexChanged);
+                    this.lstFiles.ItemSelectionChanged += new System.Windows.Forms.ListViewItemSelectionChangedEventHandler(this.lstFiles_ItemSelectionChanged);
+                    this.txbFileNum.TextChanged += new System.EventHandler(this.txbFileNum_TextChanged);
                 }
             }
         }
