@@ -1036,7 +1036,7 @@ namespace Donkey_car_manager
         }
         private void btnFileDelete_Click(object sender, EventArgs e)
         {
-            // 1. 이미지 데이터 바구니(carImages) 상태 확인 및 범위 검사
+            // 1. 데이터 바구니(carImages) 상태 확인 및 범위 검사
             if (carImages == null || carImages.Count == 0 || currentImageIndex < 0 || currentImageIndex >= carImages.Count)
             {
                 MessageBox.Show("삭제할 프레임 이미지가 로드되지 않았거나 선택되지 않았습니다.", "알림", MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -1044,198 +1044,282 @@ namespace Donkey_car_manager
             }
 
             // 자동 재생 중이면 안전을 위해 잠시 멈춤
-            if (isPlaying) StopAutoPlay(); //
+            if (isPlaying) StopAutoPlay();
 
-            // 2. 현재 트랙바/화면이 가리키는 전역 인덱스 및 파일 정보 추출
+            // 2. 무조건 현재 픽처박스/트랙바가 가리키는 단일 인덱스 정보 추출
             int globalIndex = currentImageIndex;
-            string targetFilePath = carImages[globalIndex].FilePath; //
+            string targetFilePath = carImages[globalIndex].FilePath;
             string fileName = Path.GetFileName(targetFilePath); // 예: "123_cam-image_array.jpg"
-            string targetDirectory = Path.GetDirectoryName(targetFilePath); // 현재 데이터 폴더 경로
+            string targetDirectory = Path.GetDirectoryName(targetFilePath); // 데이터가 담긴 Tub 폴더 경로
 
-            // 3. 사용자 확인 다이얼로그 출력
+            // 3. 사용자 확인 다이얼로그
             DialogResult result = MessageBox.Show(
                 $"현재 프레임({fileName})을 삭제하시겠습니까?\n이미지 디스크 삭제 및 카탈로그 레코드 수정이 동시에 진행됩니다.",
-                "동키카 프레임 영구 삭제",
+                "동키카 단일 프레임 영구 삭제",
                 MessageBoxButtons.YesNo,
-                MessageBoxIcon.Warning); //
+                MessageBoxIcon.Warning);
 
-            if (result == DialogResult.Yes) //
+            if (result != DialogResult.Yes) return;
+
+            // UI 이벤트 핸들러 일시 차단 (화면 꼬임 및 연쇄 반응 방지)
+            this.lstFiles.SelectedIndexChanged -= new System.EventHandler(this.lstFiles_SelectedIndexChanged);
+            this.lstFiles.ItemSelectionChanged -= new System.Windows.Forms.ListViewItemSelectionChangedEventHandler(this.lstFiles_ItemSelectionChanged);
+            this.txbFileNum.TextChanged -= new System.EventHandler(this.txbFileNum_TextChanged);
+
+            try
             {
-                // UI 이벤트 핸들러 일시 차단 (동작 꼬임 방지)
-                this.lstFiles.SelectedIndexChanged -= new System.EventHandler(this.lstFiles_SelectedIndexChanged);
-                this.lstFiles.ItemSelectionChanged -= new System.Windows.Forms.ListViewItemSelectionChangedEventHandler(this.lstFiles_ItemSelectionChanged);
-                this.txbFileNum.TextChanged -= new System.EventHandler(this.txbFileNum_TextChanged);
-
-                try
+                // 4. 픽처박스 파일 잠금(Lock) 완벽 해제 (윈폼 파일 삭제 에러 방지)
+                if (picCurFrame.Image != null)
                 {
-                    // 4. 픽처박스 파일 잠금(Lock) 해제
-                    if (picCurFrame.Image != null) //
-                    {
-                        picCurFrame.Image.Dispose(); //
-                        picCurFrame.Image = null; //
-                    }
-                    GC.Collect();
-                    GC.WaitForPendingFinalizers();
+                    picCurFrame.Image.Dispose();
+                    picCurFrame.Image = null;
+                }
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
 
-                    // 5. [추가 핵심] 카탈로그(catalog_X.catalog) 파일 수정 로직
-                    if (Directory.Exists(targetDirectory))
-                    {
-                        // 폴더 내의 모든 .catalog 파일들을 탐색합니다.
-                        string[] catalogFiles = Directory.GetFiles(targetDirectory, "catalog_*.catalog");
-                        bool recordDeleted = false;
+                // 5. 🌟 카탈로그(catalog_*.catalog) 파일에서 해당 이미지 레코드만 삭제
+                if (!string.IsNullOrEmpty(targetDirectory) && Directory.Exists(targetDirectory))
+                {
+                    string[] catalogFiles = Directory.GetFiles(targetDirectory, "catalog_*.catalog");
 
-                        foreach (string catalogPath in catalogFiles)
+                    foreach (string catalogPath in catalogFiles)
+                    {
+                        if (File.Exists(catalogPath))
                         {
-                            if (File.Exists(catalogPath))
+                            string[] lines = File.ReadAllLines(catalogPath, Encoding.UTF8);
+                            List<string> updatedLines = new List<string>();
+                            bool isModified = false;
+
+                            foreach (string line in lines)
                             {
-                                // 카탈로그 파일을 한 줄씩 전부 읽어옵니다.
-                                string[] lines = File.ReadAllLines(catalogPath, Encoding.UTF8);
-                                List<string> updatedLines = new List<string>();
-                                bool fileModified = false;
-
-                                foreach (string line in lines)
+                                // 카탈로그 파일 내용 중 현재 이미지 파일명(fileName)이 포함된 줄인지 검사
+                                if (line.Contains(fileName))
                                 {
-                                    // 삭제하려는 이미지 파일명(예: "123_cam-image_array.jpg")이 적힌 줄인지 검사
-                                    if (line.Contains(fileName))
-                                    {
-                                        // 일치하는 레코드를 찾으면 요 줄은 저장을 건너뜁니다 (즉, 카탈로그에서 제거)
-                                        fileModified = true;
-                                        recordDeleted = true;
-                                        continue;
-                                    }
-                                    updatedLines.Add(line);
+                                    isModified = true;
+                                    continue; // 👈 일치하는 한 줄은 건너뛰어 카탈로그에서 제외시킴
                                 }
+                                updatedLines.Add(line);
+                            }
 
-                                // 변경 사항이 발생한 카탈로그 파일만 덮어쓰기 저장합니다.
-                                if (fileModified)
-                                {
-                                    File.WriteAllLines(catalogPath, updatedLines, Encoding.UTF8);
-                                }
+                            // 수정사항이 있다면 카탈로그 파일 덮어쓰기 저장
+                            if (isModified)
+                            {
+                                File.WriteAllLines(catalogPath, updatedLines, Encoding.UTF8);
                             }
                         }
-
-                        if (!recordDeleted)
-                        {
-                            System.Diagnostics.Debug.WriteLine("경고: 카탈로그 파일에서 해당 이미지의 메타데이터 레코드를 찾지 못했습니다.");
-                        }
-                    }
-
-                    // 6. 실제 하드디스크에서 이미지 파일 제거
-                    if (System.IO.File.Exists(targetFilePath)) //
-                    {
-                        System.IO.File.Delete(targetFilePath); //
-                    }
-
-                    // 7. C# 프로그램 내부 데이터 바구니(carImages)에서 삭제 처리
-                    carImages.RemoveAt(globalIndex); //
-
-                    if (selectedGlobalIndices != null) //
-                    {
-                        selectedGlobalIndices.Clear(); //
-                    }
-
-                    // 8. 페이지 수 및 트랙바 범위 갱신
-                    totalPages = (int)Math.Ceiling((double)carImages.Count / pageSize); //
-                    trbFrame.Maximum = Math.Max(0, carImages.Count - 1); //
-
-                    if (currentImageIndex >= carImages.Count) //
-                    {
-                        currentImageIndex = Math.Max(0, carImages.Count - 1); //
-                    }
-                    currentPage = (carImages.Count > 0) ? (currentImageIndex / pageSize) : 0; //
-
-                    if (carImages.Count > 0) //
-                    {
-                        trbFrame.Value = currentImageIndex; //
-                    }
-                    else
-                    {
-                        trbFrame.Value = 0; //
-                    }
-
-                    // 9. 화면 UI 새로고침
-                    lstFiles.SelectedItems.Clear();
-                    UpdateListPage(); //
-
-                    if (carImages.Count > 0) //
-                    {
-                        ShowImage(currentImageIndex); //
-                        int localIndex = currentImageIndex % pageSize; //
-                        if (localIndex >= 0 && localIndex < lstFiles.Items.Count) //
-                        {
-                            lstFiles.Items[localIndex].Focused = true; //
-                            lstFiles.Items[localIndex].EnsureVisible(); //
-                            UpdatePageUI(localIndex); //
-                        }
-                    }
-                    else
-                    {
-                        lblFrameNum.Text = "프레임 번호 : 0 / 0"; //
-                        if (lblFilenumber != null) lblFilenumber.Text = "0 ~ 0"; //
-                        MessageBox.Show("폴더 내의 모든 프레임이 삭제되었습니다.", "알림", MessageBoxButtons.OK, MessageBoxIcon.Information); //
                     }
                 }
-                catch (Exception ex)
+
+                // 6. 실제 하드디스크(디스크)에서 이미지 파일 제거
+                if (File.Exists(targetFilePath))
                 {
-                    MessageBox.Show($"파일 삭제 및 카탈로그 갱신 중 오류 발생:\n{ex.Message}", "오류", MessageBoxButtons.OK, MessageBoxIcon.Error); //
-                    if (carImages.Count > 0) ShowImage(currentImageIndex); //
+                    File.Delete(targetFilePath);
                 }
-                finally
+
+                // 7. C# 프로그램 메모리 데이터 바구니(carImages)에서 제거
+                carImages.RemoveAt(globalIndex);
+
+                // 8. 페이지 수 및 트랙바 슬라이더 범위 재계산
+                totalPages = (int)Math.Ceiling((double)carImages.Count / pageSize);
+                trbFrame.Maximum = Math.Max(0, carImages.Count - 1);
+
+                // 현재 인덱스가 데이터 범위를 넘어가지 않도록 보정
+                if (currentImageIndex >= carImages.Count)
                 {
-                    // 이벤트 핸들러 재연결
-                    this.lstFiles.SelectedIndexChanged += new System.EventHandler(this.lstFiles_SelectedIndexChanged);
-                    this.lstFiles.ItemSelectionChanged += new System.Windows.Forms.ListViewItemSelectionChangedEventHandler(this.lstFiles_ItemSelectionChanged);
-                    this.txbFileNum.TextChanged += new System.EventHandler(this.txbFileNum_TextChanged);
+                    currentImageIndex = Math.Max(0, carImages.Count - 1);
                 }
+                currentPage = (carImages.Count > 0) ? (currentImageIndex / pageSize) : 0;
+
+                // 트랙바 위치 동기화
+                trbFrame.Value = (carImages.Count > 0) ? currentImageIndex : 0;
+
+                // 9. 화면 UI 및 리스트뷰 새로고침
+                lstFiles.SelectedItems.Clear();
+                UpdateListPage();
+
+                if (carImages.Count > 0)
+                {
+                    ShowImage(currentImageIndex);
+                    int localIndex = currentImageIndex % pageSize;
+                    if (localIndex >= 0 && localIndex < lstFiles.Items.Count)
+                    {
+                        lstFiles.Items[localIndex].Focused = true;
+                        lstFiles.Items[localIndex].EnsureVisible();
+                        UpdatePageUI(localIndex);
+                    }
+                }
+                else
+                {
+                    lblFrameNum.Text = "프레임 번호 : 0 / 0";
+                    if (lblFilenumber != null) lblFilenumber.Text = "0 ~ 0";
+                    MessageBox.Show("폴더 내의 모든 프레임 데이터가 삭제되었습니다.", "알림", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"단일 파일 삭제 및 카탈로그 동기화 중 오류 발생:\n{ex.Message}", "오류", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                if (carImages != null && carImages.Count > 0) ShowImage(currentImageIndex);
+            }
+            finally
+            {
+                // 10. 해제했던 리스트뷰/텍스트박스 이벤트 핸들러 안전하게 재연결
+                this.lstFiles.SelectedIndexChanged += new System.EventHandler(this.lstFiles_SelectedIndexChanged);
+                this.lstFiles.ItemSelectionChanged += new System.Windows.Forms.ListViewItemSelectionChangedEventHandler(this.lstFiles_ItemSelectionChanged);
+                this.txbFileNum.TextChanged += new System.EventHandler(this.txbFileNum_TextChanged);
             }
         }
 
         private void btnFileMultiDel_Click(object sender, EventArgs e)
         {
-            // 우선적으로 Shift+트랙바로 설정한 전역 선택(selectedGlobalIndices)을 사용
+            // 0. 전체 데이터 바구니 상태 확인
+            if (carImages == null || carImages.Count == 0)
+            {
+                MessageBox.Show("삭제할 데이터가 로드되지 않았습니다.", "알림", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            // 자동 재생 중이면 안전을 위해 잠시 멈춤
+            if (isPlaying) StopAutoPlay();
+
+            // 실제 삭제 처리를 할 '전역 인덱스 목록'을 담을 바구니
+            List<int> indicesToDelete = new List<int>();
+
+            // [분기 1] 우선적으로 Shift+트랙바로 설정한 전역 선택(selectedGlobalIndices)을 사용
             if (selectedGlobalIndices != null && selectedGlobalIndices.Count > 0)
             {
-                int deleteCount = selectedGlobalIndices.Count;
-                DialogResult result = MessageBox.Show($"선택한 {deleteCount}개의 프레임을 영구 삭제하시겠습니까?",
-                                                      "다중 삭제 확인", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
-
-                if (result != DialogResult.Yes) return;
-
-                try
+                indicesToDelete = selectedGlobalIndices.Distinct().ToList();
+            }
+            // [분기 2] selectedGlobalIndices가 비어있으면 리스트뷰 선택 기반으로 인덱스 수집
+            else if (lstFiles.SelectedIndices.Count > 0)
+            {
+                foreach (int localIdx in lstFiles.SelectedIndices)
                 {
-                    // 현재 화면에 띄워진 이미지 프로세스 해제 (파일 삭제를 위해 메모리 방출)
-                    if (picCurFrame.Image != null)
-                    {
-                        picCurFrame.Image.Dispose();
-                        picCurFrame.Image = null;
-                    }
+                    int globalIdx = (currentPage * pageSize) + localIdx;
+                    indicesToDelete.Add(globalIdx);
+                }
+            }
 
-                    GC.Collect();
-                    GC.WaitForPendingFinalizers();
+            // 두 가지 방법 모두 선택된 게 없다면 안내 멘트 후 리턴
+            if (indicesToDelete.Count == 0)
+            {
+                MessageBox.Show("다중 삭제할 파일을 트랙바 영역이나 리스트뷰에서 선택해주세요.", "알림", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
 
-                    var toDelete = selectedGlobalIndices.OrderByDescending(i => i).ToList();
-                    foreach (int globalIdx in toDelete)
+            int deleteCount = indicesToDelete.Count;
+            DialogResult result = MessageBox.Show($"선택한 {deleteCount}개의 프레임을 영구 삭제하시겠습니까?\n이미지 디스크 삭제 및 카탈로그 레코드 수정이 동시에 진행됩니다.",
+                                                  "다중 삭제 확인", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+
+            if (result != DialogResult.Yes) return;
+
+            // UI 연쇄 반응 및 갱신 꼬임을 차단하기 위해 이벤트 일시 해제
+            this.lstFiles.SelectedIndexChanged -= new System.EventHandler(this.lstFiles_SelectedIndexChanged);
+            this.lstFiles.ItemSelectionChanged -= new System.Windows.Forms.ListViewItemSelectionChangedEventHandler(this.lstFiles_ItemSelectionChanged);
+            this.txbFileNum.TextChanged -= new System.EventHandler(this.txbFileNum_TextChanged);
+
+            try
+            {
+                // 1. 현재 화면에 띄워진 이미지 프로세스 해제 (파일 삭제를 위한 Lock 방출)
+                if (picCurFrame.Image != null)
+                {
+                    picCurFrame.Image.Dispose();
+                    picCurFrame.Image = null;
+                }
+
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+
+                // 2. 삭제할 파일들의 순수한 파일명 수집 및 디렉터리 식별
+                List<string> targetFileNames = new List<string>();
+                string targetDirectory = "";
+
+                foreach (int idx in indicesToDelete)
+                {
+                    if (idx >= 0 && idx < carImages.Count)
                     {
-                        if (globalIdx >= 0 && globalIdx < carImages.Count)
+                        targetFileNames.Add(Path.GetFileName(carImages[idx].FilePath));
+                        if (string.IsNullOrEmpty(targetDirectory))
                         {
-                            string path = carImages[globalIdx].FilePath;
-                            if (System.IO.File.Exists(path))
-                            {
-                                System.IO.File.Delete(path);
-                            }
-                            carImages.RemoveAt(globalIdx);
+                            targetDirectory = Path.GetDirectoryName(carImages[idx].FilePath);
                         }
                     }
+                }
 
+                // 3. 🌟 [핵심 기능] 카탈로그(catalog_*.catalog) 파일 내용 동시 수정
+                if (!string.IsNullOrEmpty(targetDirectory) && Directory.Exists(targetDirectory))
+                {
+                    string[] catalogFiles = Directory.GetFiles(targetDirectory, "catalog_*.catalog");
+
+                    foreach (string catalogPath in catalogFiles)
+                    {
+                        if (File.Exists(catalogPath))
+                        {
+                            string[] lines = File.ReadAllLines(catalogPath, Encoding.UTF8);
+                            List<string> updatedLines = new List<string>();
+                            bool isModified = false;
+
+                            foreach (string line in lines)
+                            {
+                                bool shouldDeleteLine = false;
+
+                                // 카탈로그의 한 줄에 삭제 대상 파일명 중 하나라도 묻어있는지 체크
+                                foreach (string fname in targetFileNames)
+                                {
+                                    if (line.Contains(fname))
+                                    {
+                                        shouldDeleteLine = true;
+                                        isModified = true;
+                                        break;
+                                    }
+                                }
+
+                                // 삭제 대상이 아닌 라인만 유지
+                                if (!shouldDeleteLine)
+                                {
+                                    updatedLines.Add(line);
+                                }
+                            }
+
+                            // 내용 변화가 생겼다면 카탈로그 파일 오버라이트(저장)
+                            if (isModified)
+                            {
+                                File.WriteAllLines(catalogPath, updatedLines, Encoding.UTF8);
+                            }
+                        }
+                    }
+                }
+
+                // 4. 🌟 실제 이미지 파일 디스크 삭제 및 데이터 바구니(carImages) 제거
+                // 내림차순(역순)으로 정렬하여 삭제해야 데이터 인덱스가 당겨져 발생하는 버그를 차단합니다.
+                var toDeleteSorted = indicesToDelete.OrderByDescending(i => i).ToList();
+                foreach (int globalIdx in toDeleteSorted)
+                {
+                    if (globalIdx >= 0 && globalIdx < carImages.Count)
+                    {
+                        string path = carImages[globalIdx].FilePath;
+                        if (System.IO.File.Exists(path))
+                        {
+                            System.IO.File.Delete(path);
+                        }
+                        carImages.RemoveAt(globalIdx);
+                    }
+                }
+
+                // 5. 다중 선택 바구니 청소
+                if (selectedGlobalIndices != null)
+                {
                     selectedGlobalIndices.Clear();
-                    MessageBox.Show($"{deleteCount}개의 파일 삭제를 완료했습니다.", "완료", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"파일 다중 삭제 작업 중 오류가 발생했습니다:\n{ex.Message}", "오류", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
 
-                // UI 갱신
+                MessageBox.Show($"{deleteCount}개의 파일 및 카탈로그 레코드 삭제를 완료했습니다.", "완료", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"파일 다중 삭제 작업 중 오류가 발생했습니다:\n{ex.Message}", "오류", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                // 6. UI 재건 및 갱신 프로세스 수행
                 if (carImages.Count == 0)
                 {
                     trbFrame.Maximum = 0;
@@ -1246,6 +1330,8 @@ namespace Donkey_car_manager
 
                     lstFiles.Items.Clear();
                     lblCurFilePage.Text = "0 / 0";
+                    lblFrameNum.Text = "프레임 번호 : 0 / 0";
+                    if (lblFilenumber != null) lblFilenumber.Text = "0 ~ 0";
                 }
                 else
                 {
@@ -1264,95 +1350,15 @@ namespace Donkey_car_manager
                     trbFrame.Maximum = Math.Max(0, carImages.Count - 1);
                     trbFrame.Value = Math.Min(trbFrame.Value, trbFrame.Maximum);
 
+                    lstFiles.SelectedItems.Clear();
                     UpdateListPage();
                     ShowImage(currentImageIndex);
                 }
 
-                return;
-            }
-
-            // selectedGlobalIndices가 비어있으면 기존 리스트뷰 선택 기반 삭제 동작 수행
-            // 1. 리스트뷰에서 선택된 항목이 없으면 리턴
-            if (lstFiles.SelectedIndices.Count == 0)
-            {
-                MessageBox.Show("다중 삭제할 파일을 리스트에서 선택해주세요.\n(Ctrl 이나 Shift를 누른 채 클릭하면 여러 개 선택이 가능합니다.)",
-                                "알림", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            int delCount = lstFiles.SelectedIndices.Count;
-            DialogResult dlg = MessageBox.Show($"리스트에서 선택한 {delCount}개의 프레임 이미지를 정말로 디스크에서 영구 삭제하시겠습니까?",
-                                              "다중 삭제 확인", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
-
-            if (dlg == DialogResult.Yes)
-            {
-                try
-                {
-                    if (picCurFrame.Image != null)
-                    {
-                        picCurFrame.Image.Dispose();
-                        picCurFrame.Image = null;
-                    }
-
-                    GC.Collect();
-                    GC.WaitForPendingFinalizers();
-
-                    List<int> selectedIndices = lstFiles.SelectedIndices.Cast<int>().OrderByDescending(i => i).ToList();
-
-                    foreach (int listBoxIndex in selectedIndices)
-                    {
-                        int actualIndex = (currentPage * pageSize) + listBoxIndex;
-
-                        if (actualIndex >= 0 && actualIndex < carImages.Count)
-                        {
-                            string fileToDelete = carImages[actualIndex].FilePath;
-                            if (System.IO.File.Exists(fileToDelete))
-                            {
-                                System.IO.File.Delete(fileToDelete);
-                            }
-                            carImages.RemoveAt(actualIndex);
-                        }
-                    }
-
-                    MessageBox.Show($"{delCount}개의 파일 삭제를 완료했습니다.", "완료", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"파일 다중 삭제 작업 중 오류가 발생했습니다:\n{ex.Message}", "오류", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
-
-                // UI 갱신
-                if (carImages.Count == 0)
-                {
-                    trbFrame.Maximum = 0;
-                    trbFrame.Value = 0;
-                    currentPage = 0;
-                    totalPages = 0;
-                    currentImageIndex = 0;
-
-                    lstFiles.Items.Clear();
-                    lblCurFilePage.Text = "0 / 0";
-                }
-                else
-                {
-                    totalPages = (int)Math.Ceiling((double)carImages.Count / pageSize);
-
-                    if (currentPage >= totalPages)
-                    {
-                        currentPage = totalPages - 1;
-                    }
-
-                    if (currentImageIndex >= carImages.Count)
-                    {
-                        currentImageIndex = carImages.Count - 1;
-                    }
-
-                    trbFrame.Maximum = Math.Max(0, carImages.Count - 1);
-                    trbFrame.Value = Math.Min(trbFrame.Value, trbFrame.Maximum);
-
-                    UpdateListPage();
-                    ShowImage(currentImageIndex);
-                }
+                // 7. 해제했던 이벤트 핸들러 다시 복구 및 활성화
+                this.lstFiles.SelectedIndexChanged += new System.EventHandler(this.lstFiles_SelectedIndexChanged);
+                this.lstFiles.ItemSelectionChanged += new System.Windows.Forms.ListViewItemSelectionChangedEventHandler(this.lstFiles_ItemSelectionChanged);
+                this.txbFileNum.TextChanged += new System.EventHandler(this.txbFileNum_TextChanged);
             }
         }
         //기록창 확장 버튼 이전 코드
