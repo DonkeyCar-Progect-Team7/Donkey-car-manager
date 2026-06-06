@@ -15,17 +15,16 @@ namespace Donkey_car_manager
 {
     public partial class Form1 : Form
     {
-        private async Task SetFullAuto()
+        private async Task SetAutoSteer()
         {
-            using (ClientWebSocket ws =
-                   new ClientWebSocket())
+            using (ClientWebSocket ws = new ClientWebSocket())
             {
                 await ws.ConnectAsync(
                     new Uri("ws://localhost:8887/wsDrive"),
                     CancellationToken.None);
 
                 string json =
-                    "{\"drive_mode\":\"local\"}";
+                    "{\"drive_mode\":\"local_angle\"}";
 
                 byte[] buffer =
                     Encoding.UTF8.GetBytes(json);
@@ -104,8 +103,38 @@ namespace Donkey_car_manager
         // button1 클릭 이벤트: 토글형으로 aiPictureBox 생성/스트림 시작 또는 중지/제거
         private async void button1_Click(object sender, EventArgs e)
         {
+            Process.Start(new ProcessStartInfo(
+                "http://localhost:8887/drive")
+            {
+                UseShellExecute = true
+            });
+
+            string linuxUser = txtLinuxUser.Text.Trim();
+
+            string cmd =
+            $"source /home/{linuxUser}/miniconda3/bin/activate e2e_env && " +
+            $"cd /home/{linuxUser}/mysim && " +
+            $"python manage.py drive --model models/mypilot.h5";
+
+            ProcessStartInfo psi = new ProcessStartInfo
+            {
+                FileName = "wsl.exe",
+                Arguments = $"-d Ubuntu-22.04 bash -c \"{cmd}\"",
+                UseShellExecute = false,
+                CreateNoWindow = false
+            };
+
+           
+
             if (!aiStreaming)
             {
+                Process.Start(psi);
+
+                await Task.Delay(15000);
+
+                await SetAutoSteer();
+
+
                 aiPictureBox = picCurFrame;
 
                 // 스트림 시작
@@ -115,7 +144,7 @@ namespace Donkey_car_manager
 
                 try
                 {
-                    await SetFullAuto();
+                  //  await SetFullAuto();
 
                     // 버튼 텍스트 상태 변경
                     btnStartAuto.Text = "자율주행 종료";
@@ -1673,28 +1702,20 @@ namespace Donkey_car_manager
             // =================================================================
             try
             {
-                // 1. 🌟 리눅스 동키카 파이썬 서버 구동 (이제 윈도우 터미널 창이 100% 강제로 튀어나옵니다)
-                Process wslProcess = new Process();
-                wslProcess.StartInfo = wslInfo;
-                wslProcess.Start();
-
-                // 2. 가상환경 레이어가 올라가고 웹 서버 포트가 잡힐 때까지 1.5초 대기
-                System.Threading.Thread.Sleep(1500);
-
-                // 3. 유저가 선택한 유니티 시뮬레이터 프로그램 실행
+      
+                // 1. 유저가 선택한 유니티 시뮬레이터 프로그램 실행
                 Process simProcess = new Process();
                 simProcess.StartInfo = simInfo;
                 simProcess.Start();
 
-                // 4. 시뮬레이터와 서버가 웹소켓 결합을 완료할 수 있도록 2초 대기
+                // 2. 시뮬레이터와 서버가 웹소켓 결합을 완료할 수 있도록 2초 대기
                 System.Threading.Thread.Sleep(2000);
 
-                // 5. 기본 브라우저를 통해 최종 제어 웹 사이트 오픈
-                string donkeyUrl = "http://localhost:8887";
-                Process.Start(new ProcessStartInfo(donkeyUrl) { UseShellExecute = true });
+                // 3. 기본 브라우저를 통해 최종 제어 웹 사이트 오픈
+              
+           
 
-                MessageBox.Show("동키카 백엔드 서버, 시뮬레이터 프로그램, 제어 웹 브라우저가 모두 정상 기동되었습니다!",
-                                "구동 성공", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                
             }
             catch (Exception ex)
             {
