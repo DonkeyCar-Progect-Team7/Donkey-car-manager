@@ -59,6 +59,9 @@
             btnStartAuto = new Button();
             btnReset = new Button();
             lblFilenumber = new Label();
+            rtbLearningLog = new RichTextBox();
+            lblEpoch = new Label();
+            lblLoss = new Label();
             ((System.ComponentModel.ISupportInitialize)trbFrame).BeginInit();
             ((System.ComponentModel.ISupportInitialize)picCurFrame).BeginInit();
             ((System.ComponentModel.ISupportInitialize)dgvDebug).BeginInit();
@@ -428,12 +431,53 @@
             lblFilenumber.Text = "선택 없음";
             lblFilenumber.TextAlign = ContentAlignment.TopCenter;
             // 
+            // rtbLearningLog
+            // 
+            rtbLearningLog.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            rtbLearningLog.BackColor = Color.Black;
+            rtbLearningLog.Font = new Font("Consolas", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            rtbLearningLog.ForeColor = Color.Lime;
+            rtbLearningLog.Location = new Point(236, 12);
+            rtbLearningLog.Name = "rtbLearningLog";
+            rtbLearningLog.ReadOnly = true;
+            rtbLearningLog.Size = new Size(665, 433);
+            rtbLearningLog.TabIndex = 31;
+            rtbLearningLog.Text = "";
+            rtbLearningLog.Visible = false;
+            // 
+            // lblEpoch
+            // 
+            lblEpoch.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            lblEpoch.AutoSize = true;
+            lblEpoch.Font = new Font("맑은 고딕", 11.25F, FontStyle.Bold, GraphicsUnit.Point, 129);
+            lblEpoch.ForeColor = Color.Yellow;
+            lblEpoch.Location = new Point(907, 180);
+            lblEpoch.Name = "lblEpoch";
+            lblEpoch.Size = new Size(106, 20);
+            lblEpoch.TabIndex = 32;
+            lblEpoch.Text = "현재 Epoch : -";
+            // 
+            // lblLoss
+            // 
+            lblLoss.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            lblLoss.AutoSize = true;
+            lblLoss.Font = new Font("맑은 고딕", 11.25F, FontStyle.Bold, GraphicsUnit.Point, 129);
+            lblLoss.ForeColor = Color.Lime;
+            lblLoss.Location = new Point(907, 210);
+            lblLoss.Name = "lblLoss";
+            lblLoss.Size = new Size(95, 20);
+            lblLoss.TabIndex = 33;
+            lblLoss.Text = "현재 Loss : -";
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = Color.FromArgb(0, 0, 64);
             ClientSize = new Size(1129, 942);
+            Controls.Add(lblLoss);
+            Controls.Add(lblEpoch);
+            Controls.Add(rtbLearningLog);
             Controls.Add(lblFilenumber);
             Controls.Add(btnReset);
             Controls.Add(btnStartAuto);
@@ -502,5 +546,8 @@
         private Button btnStartAuto;
         private Button btnReset;
         private Label lblFilenumber;
+        private RichTextBox rtbLearningLog;
+        private Label lblEpoch;
+        private Label lblLoss;
     }
 }

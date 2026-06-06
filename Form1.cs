@@ -1849,6 +1849,10 @@ namespace Donkey_car_manager
 
                 if (stopConfirm == DialogResult.Yes)
                 {
+
+                    rtbLearningLog.Visible = false;
+                    picCurFrame.Visible = true;
+
                     try
                     {
                         // WSL 백그라운드 프로세스 강제 종료
@@ -1931,6 +1935,87 @@ namespace Donkey_car_manager
             // 6. 🌟 [비동기 데이터 수신 이벤트] 리눅스가 글자를 출력할 때마다 실시간 백그라운드 파싱
             trainProcess.OutputDataReceived += (s, args) =>
             {
+                if (args.Data == null) return;
+
+                this.BeginInvoke(new Action(() =>
+                {
+                    string log = args.Data;
+
+                    // Epoch 표시
+                    if (log.Contains("Epoch") && log.Contains("/"))
+                    {
+                        lblEpoch.Text = log;
+                    }
+
+                    if (log.Contains("val_loss improved"))
+                    {
+                        try
+                        {
+                            string[] parts = log.Split(" to ");
+
+                            if (parts.Length > 1)
+                            {
+                                string loss =
+                                    parts[1].Split(',')[0].Trim();
+
+                                lblLoss.Text =
+                                    $"현재 Loss : {loss}";
+                            }
+                        }
+                        catch
+                        {
+                        }
+                    }
+
+                    if (log.Contains("Epoch") && log.Contains("/"))
+                    {
+                        lblEpoch.Text =
+                            $"현재 Epoch : {log.Replace("Epoch ", "")}";
+                    }
+
+                    if (log.Contains("Epoch"))
+                    {
+                        rtbLearningLog.AppendText(log + Environment.NewLine);
+
+                        rtbLearningLog.SelectionStart =
+                            rtbLearningLog.Text.Length;
+
+                        rtbLearningLog.ScrollToCaret();
+                    }
+                }));
+
+                // 진행률 계산 부분 그대로
+                if (pbLearningProgress != null)
+                {
+                    if (args.Data.Contains("Epoch") && args.Data.Contains("/"))
+                    {
+                        try
+                        {
+                            string cleanData = args.Data.Replace("Epoch", "").Trim();
+                            string[] epochParts = cleanData.Split(' ')[0].Split('/');
+
+                            if (epochParts.Length == 2)
+                            {
+                                int currentEpoch = int.Parse(epochParts[0]);
+                                int totalEpochs = int.Parse(epochParts[1]);
+
+                                int percent =
+                                    (int)(((double)currentEpoch / totalEpochs) * 100);
+
+                                if (percent >= 0 && percent <= 100)
+                                {
+                                    this.BeginInvoke(new Action(() =>
+                                    {
+                                        pbLearningProgress.Value = percent;
+                                    }));
+                                }
+                            }
+                        }
+                        catch { }
+                    }
+                }
+
+
                 if (args.Data != null && pbLearningProgress != null)
                 {
                     this.BeginInvoke(new Action(() =>
@@ -1965,11 +2050,18 @@ namespace Donkey_car_manager
                 }
             };
 
+           // trainProcess.ErrorDataReceived += (s, args) =>
+            
+
             // 7. 🌟 [학습 최종 완료 이벤트] AI 학습이 정상적으로 끝났을 때 실행
             trainProcess.Exited += (s, args) =>
             {
                 this.BeginInvoke(new Action(() =>
                 {
+
+                    rtbLearningLog.Visible = false;
+                    picCurFrame.Visible = true;
+
                     if (pbLearningProgress != null)
                     {
                         pbLearningProgress.Value = 100;
@@ -2000,6 +2092,9 @@ namespace Donkey_car_manager
                 {
                     // 백그라운드 리눅스 프로세스 기동
                     trainProcess.Start();
+                    rtbLearningLog.Visible = true;
+                    rtbLearningLog.Clear();
+                    rtbLearningLog.AppendText("학습 시작됨\r\n");
 
                     // 비동기 텍스트 가로채기 스트림 동작 시작
                     trainProcess.BeginOutputReadLine();
