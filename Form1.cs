@@ -15,32 +15,68 @@ namespace Donkey_car_manager
 {
     public partial class Form1 : Form
     {
-        private async Task SetAutoSteer()
+        private async Task WaitForDonkeyServer()
         {
-            using (ClientWebSocket ws = new ClientWebSocket())
+            using (HttpClient client = new HttpClient())
             {
-                await ws.ConnectAsync(
-                    new Uri("ws://localhost:8887/wsDrive"),
-                    CancellationToken.None);
+                while (true)
+                {
+                    try
+                    {
+                        HttpResponseMessage response =
+                            await client.GetAsync("http://localhost:8887");
 
-                string json =
-                    "{\"drive_mode\":\"local_angle\"}";
+                        if (response.IsSuccessStatusCode)
+                            return;
+                    }
+                    catch
+                    {
+                    }
 
-                byte[] buffer =
-                    Encoding.UTF8.GetBytes(json);
-
-                await ws.SendAsync(
-                    new ArraySegment<byte>(buffer),
-                    WebSocketMessageType.Text,
-                    true,
-                    CancellationToken.None);
-
-                await ws.CloseAsync(
-                    WebSocketCloseStatus.NormalClosure,
-                    "",
-                    CancellationToken.None);
+                    await Task.Delay(1000);
+                }
             }
         }
+        private async Task SetAutoSteer()
+        {
+            for (int i = 0; i < 10; i++)
+            {
+                try
+                {
+                    using (ClientWebSocket ws = new ClientWebSocket())
+                    {
+                        await ws.ConnectAsync(
+                            new Uri("ws://localhost:8887/wsDrive"),
+                            CancellationToken.None);
+
+                        string json =
+                            "{\"drive_mode\":\"local_angle\"}";
+
+                        byte[] buffer =
+                            Encoding.UTF8.GetBytes(json);
+
+                        await ws.SendAsync(
+                            new ArraySegment<byte>(buffer),
+                            WebSocketMessageType.Text,
+                            true,
+                            CancellationToken.None);
+
+                        await ws.CloseAsync(
+                            WebSocketCloseStatus.NormalClosure,
+                            "",
+                            CancellationToken.None);
+
+                        return; // 성공하면 종료
+                    }
+                }
+                catch
+                {
+                    await Task.Delay(2000); // 2초 후 재시도
+                }
+            }
+        
+        }
+
         private void SyncListViewMultiSelection()
         {
             // 이미지 데이터나 리스트뷰가 비어있으면 동작 불필요
@@ -103,11 +139,7 @@ namespace Donkey_car_manager
         // button1 클릭 이벤트: 토글형으로 aiPictureBox 생성/스트림 시작 또는 중지/제거
         private async void button1_Click(object sender, EventArgs e)
         {
-            Process.Start(new ProcessStartInfo(
-                "http://localhost:8887/drive")
-            {
-                UseShellExecute = true
-            });
+            
 
             string linuxUser = txtLinuxUser.Text.Trim();
 
@@ -124,56 +156,43 @@ namespace Donkey_car_manager
                 CreateNoWindow = false
             };
 
-           
+
 
             if (!aiStreaming)
             {
                 Process.Start(psi);
 
-                await Task.Delay(15000);
+                // Donkey 서버가 준비될 때까지 기다림
+                await WaitForDonkeyServer();
 
-                await SetAutoSteer();
+                // 웹페이지 자동 열기
+                Process.Start(new ProcessStartInfo(
+                    "http://localhost:8887/drive")
+                {
+                    UseShellExecute = true
+                });
 
+                await Task.Delay(5000);
 
+                // PictureBox 지정
                 aiPictureBox = picCurFrame;
 
-                // 스트림 시작
+                // 스트림 객체 생성
                 aiStreamCts = new System.Threading.CancellationTokenSource();
                 aiHttpClient = new System.Net.Http.HttpClient();
                 aiStreaming = true;
 
-                try
-                {
-                  //  await SetFullAuto();
+                // AutoSteer 설정
+                await SetAutoSteer();
 
-                    // 버튼 텍스트 상태 변경
-                    btnStartAuto.Text = "자율주행 종료";
-                    await Task.Run(() => RunMjpegStream("http://localhost:8887/video", aiStreamCts.Token));
-                }
-                catch (OperationCanceledException)
-                {
-                    // 정상 중단
-                }
-                catch (Exception)
-                {
-                    // 연결 실패 메시지
-                    if (this.IsHandleCreated)
-                    {
-                        this.BeginInvoke(new Action(() =>
-                        {
-                            MessageBox.Show("DonkeyCar 서버가 실행 중인지 확인하세요.", "연결 실패", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                            // 실패 시 aiPictureBox 제거
-                            if (aiPictureBox != null)
-                            {
-                                var prev = aiPictureBox.Image;
-                                aiPictureBox.Image = null;
-                                prev?.Dispose();
-                            }
-                            aiStreaming = false;
-                            btnStartAuto.Text = "자율주행 시작";
-                        }));
-                    }
-                }
+                // 버튼 상태 변경
+                btnStartAuto.Text = "자율주행 종료";
+
+                // 영상 스트림 시작
+                await Task.Run(() =>
+                    RunMjpegStream(
+                        "http://localhost:8887/video",
+                        aiStreamCts.Token));
             }
             else
             {
@@ -210,33 +229,81 @@ namespace Donkey_car_manager
         // MJPEG 스트림 읽기 (SOI/EOI로 프레임 분리)
         private async Task RunMjpegStream(string url, System.Threading.CancellationToken token)
         {
-            using (var client = aiHttpClient ?? new System.Net.Http.HttpClient())
-            using (var resp = await client.GetAsync(url, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, token))
+            try
             {
-                if (!resp.IsSuccessStatusCode) throw new Exception("HTTP error");
-                using (var stream = await resp.Content.ReadAsStreamAsync(token))
+                using (var client = aiHttpClient ?? new System.Net.Http.HttpClient())
+                using (var resp = await client.GetAsync(
+                           url,
+                           System.Net.Http.HttpCompletionOption.ResponseHeadersRead,
+                           token))
                 {
-                    var buf = new byte[4096];
-                    var ms = new System.IO.MemoryStream();
-                    while (!token.IsCancellationRequested)
+                    if (!resp.IsSuccessStatusCode)
+                        throw new Exception("HTTP error");
+
+                    using (var stream = await resp.Content.ReadAsStreamAsync(token))
                     {
-                        int read = await stream.ReadAsync(buf, 0, buf.Length, token);
-                        if (read <= 0) break;
-                        ms.Write(buf, 0, read);
-                        var data = ms.ToArray();
-                        int soi = IndexOf(data, new byte[] { 0xFF, 0xD8 });
-                        int eoi = IndexOf(data, new byte[] { 0xFF, 0xD9 });
-                        if (soi >= 0 && eoi > soi)
+                        var buf = new byte[4096];
+                        var ms = new System.IO.MemoryStream();
+
+                        while (!token.IsCancellationRequested)
                         {
-                            int len = eoi - soi + 2;
-                            byte[] jpeg = new byte[len];
-                            Array.Copy(data, soi, jpeg, 0, len);
-                            int remaining = data.Length - (soi + len);
-                            ms.SetLength(0);
-                            if (remaining > 0) ms.Write(data, soi + len, remaining);
-                            ShowImageOnAiPictureBox(jpeg);
+                            int read = await stream.ReadAsync(
+                                buf,
+                                0,
+                                buf.Length,
+                                token);
+
+                            if (read <= 0)
+                                break;
+
+                            ms.Write(buf, 0, read);
+
+                            var data = ms.ToArray();
+
+                            int soi = IndexOf(data, new byte[] { 0xFF, 0xD8 });
+                            int eoi = IndexOf(data, new byte[] { 0xFF, 0xD9 });
+
+                            if (soi >= 0 && eoi > soi)
+                            {
+                                int len = eoi - soi + 2;
+
+                                byte[] jpeg = new byte[len];
+
+                                Array.Copy(data, soi, jpeg, 0, len);
+
+                                int remaining = data.Length - (soi + len);
+
+                                ms.SetLength(0);
+
+                                if (remaining > 0)
+                                    ms.Write(data, soi + len, remaining);
+
+                                ShowImageOnAiPictureBox(jpeg);
+                            }
                         }
                     }
+                }
+            }
+            catch (TaskCanceledException)
+            {
+                // 종료 버튼 눌렀을 때 정상 종료
+            }
+            catch (OperationCanceledException)
+            {
+                // 정상 종료
+            }
+            catch (Exception ex)
+            {
+                if (this.IsHandleCreated)
+                {
+                    this.BeginInvoke(new Action(() =>
+                    {
+                        MessageBox.Show(
+                            ex.Message,
+                            "MJPEG 스트림 오류",
+                            MessageBoxButtons.OK,
+                            MessageBoxIcon.Error);
+                    }));
                 }
             }
         }
