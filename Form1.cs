@@ -74,7 +74,7 @@ namespace Donkey_car_manager
                     await Task.Delay(2000); // 2초 후 재시도
                 }
             }
-        
+
         }
 
         private void SyncListViewMultiSelection()
@@ -127,6 +127,8 @@ namespace Donkey_car_manager
                 // 🌟 작업이 완벽히 완료되었으므로 안전하게 이벤트를 다시 연결합니다.
                 this.lstFiles.SelectedIndexChanged += new System.EventHandler(this.lstFiles_SelectedIndexChanged);
                 this.lstFiles.ItemSelectionChanged += new System.Windows.Forms.ListViewItemSelectionChangedEventHandler(this.lstFiles_ItemSelectionChanged);
+                // 다중 선택 상태에 따라 btnmp 보이기/숨기기 갱신
+                UpdateBtnMpVisibility();
             }
         }
 
@@ -139,7 +141,7 @@ namespace Donkey_car_manager
         // button1 클릭 이벤트: 토글형으로 aiPictureBox 생성/스트림 시작 또는 중지/제거
         private async void button1_Click(object sender, EventArgs e)
         {
-            
+
 
             string linuxUser = txtLinuxUser.Text.Trim();
 
@@ -397,6 +399,10 @@ namespace Donkey_car_manager
         private int targetWidth = 1147;
         // 🌟 기존 전역 변수들이 있는 곳(class Form1 바로 아래)에 추가하세요!
         private bool isPlaying = false;
+        // 재생용: 사용자가 Shift로 트랙바에서 선택한 전역 인덱스들만 재생하기 위한 큐
+        private List<int> playQueue = null;
+        private int playQueuePos = 0;
+        private bool isPlayingSelectedRange = false;
 
         // 🌟 코드 창 빈 곳(메서드 바깥)에 추가하세요! 자동 넘기기를 안전하게 끄는 메서드입니다.
         private void StopAutoPlay()
@@ -405,6 +411,10 @@ namespace Donkey_car_manager
             btnAutoPic.Text = "자동 넘기기";
             btnAutoPic.BackColor = SystemColors.Control; // 버튼 색상 원상복구
             isPlaying = false;
+            // 다중 선택 재생 모드 초기화
+            isPlayingSelectedRange = false;
+            playQueue = null;
+            playQueuePos = 0;
         }
         // 3. 프로그램 생성자 (대괄호 짝을 완벽히 맞춤)
         public Form1()
@@ -891,6 +901,28 @@ namespace Donkey_car_manager
             try { lblFilenumber.Text = text; } catch { }
         }
 
+        // 선택 상태에 따라 btnmp(선택 재생 버튼)의 Visible을 갱신한다.
+        private void UpdateBtnMpVisibility()
+        {
+            bool shouldShow = false;
+
+            if (selectedGlobalIndices != null && selectedGlobalIndices.Count > 1)
+            {
+                shouldShow = true;
+            }
+            else if (lstFiles != null && lstFiles.SelectedIndices != null && lstFiles.SelectedIndices.Count > 1)
+            {
+                shouldShow = true;
+            }
+
+            try
+            {
+                if (btnmp != null)
+                    btnmp.Visible = shouldShow;
+            }
+            catch { }
+        }
+
         private void trbFrame_MouseDown(object sender, MouseEventArgs e)
         {
             panelRange.Height = 6; //
@@ -942,6 +974,7 @@ namespace Donkey_car_manager
 
                 UpdateRangeHighlight(); //
                 UpdateSelectedFileLabel(); //
+            UpdateBtnMpVisibility();
             }
             else
             {
@@ -1526,20 +1559,38 @@ namespace Donkey_car_manager
 
         private void timerPlay_Tick(object sender, EventArgs e)
         {
-            // 다음으로 넘어갈 프레임 인덱스 계산
-            int nextIndex = currentImageIndex + 1;
-
-            // 만약 마지막 프레임에 도달했다면 자동으로 정지
-            if (nextIndex >= carImages.Count)
+            if (isPlayingSelectedRange && playQueue != null && playQueue.Count > 0)
             {
-                StopAutoPlay();
-                MessageBox.Show("마지막 프레임에 도달하여 자동 넘기기를 종료합니다.", "알림");
-                return;
-            }
+                // 재생 큐 기반 이동
+                if (playQueuePos >= playQueue.Count)
+                {
+                    // 끝났으면 중지
+                    StopAutoPlay();
+                    MessageBox.Show("선택된 구간 재생이 완료되었습니다.", "알림");
+                    return;
+                }
 
-            // 인덱스를 1 증가시키고 트랙바(슬라이더) 위치 변경
-            currentImageIndex = nextIndex;
-            trbFrame.Value = currentImageIndex;
+                int nextIndex = playQueue[playQueuePos++];
+                currentImageIndex = nextIndex;
+                trbFrame.Value = currentImageIndex;
+            }
+            else
+            {
+                // 다음으로 넘어갈 프레임 인덱스 계산
+                int nextIndex = currentImageIndex + 1;
+
+                // 만약 마지막 프레임에 도달했다면 자동으로 정지
+                if (nextIndex >= carImages.Count)
+                {
+                    StopAutoPlay();
+                    MessageBox.Show("마지막 프레임에 도달하여 자동 넘기기를 종료합니다.", "알림");
+                    return;
+                }
+
+                // 인덱스를 1 증가시키고 트랙바(슬라이더) 위치 변경
+                currentImageIndex = nextIndex;
+                trbFrame.Value = currentImageIndex;
+            }
 
             // 이미지 출력 및 페이지 리스트박스 동기화 처리
             ShowImage(currentImageIndex);
@@ -1683,6 +1734,7 @@ namespace Donkey_car_manager
             }
             // 선택 라벨 갱신
             UpdateSelectedFileLabel();
+            UpdateBtnMpVisibility();
         }
 
         // 2. 디자이너 매핑 안정성을 위한 서브 이벤트
@@ -1703,6 +1755,7 @@ namespace Donkey_car_manager
                     UpdatePageUI(localIndex);
                 }
             }
+            UpdateBtnMpVisibility();
         }
 
         // 3. 모든 UI 요소(페이지 정보, 상단 프레임 번호)를 정확하게 동기화하는 핵심 메서드
@@ -1817,7 +1870,7 @@ namespace Donkey_car_manager
             // =================================================================
             try
             {
-      
+
                 // 1. 유저가 선택한 유니티 시뮬레이터 프로그램 실행
                 Process simProcess = new Process();
                 simProcess.StartInfo = simInfo;
@@ -1827,10 +1880,10 @@ namespace Donkey_car_manager
                 System.Threading.Thread.Sleep(2000);
 
                 // 3. 기본 브라우저를 통해 최종 제어 웹 사이트 오픈
-              
-           
 
-                
+
+
+
             }
             catch (Exception ex)
             {
@@ -2186,8 +2239,8 @@ namespace Donkey_car_manager
                 }
             };
 
-           // trainProcess.ErrorDataReceived += (s, args) =>
-            
+            // trainProcess.ErrorDataReceived += (s, args) =>
+
 
             // 7. 🌟 [학습 최종 완료 이벤트] AI 학습이 정상적으로 끝났을 때 실행
             trainProcess.Exited += (s, args) =>
@@ -2306,6 +2359,66 @@ namespace Donkey_car_manager
         private void panelRange_Paint(object sender, PaintEventArgs e)
         {
 
+        }
+
+        private void btnmp_Click(object sender, EventArgs e)
+        {
+            // btnmp: 현재 선택된 전역 인덱스들만 재생
+            if (carImages == null || carImages.Count == 0) return;
+
+            // 재생 중이면 중지
+            if (isPlaying && isPlayingSelectedRange)
+            {
+                StopAutoPlay();
+                return;
+            }
+
+            // 선택된 인덱스 수집: 우선적으로 트랙바 Shift 선택 바구니 사용
+            List<int> indices = new List<int>();
+            if (selectedGlobalIndices != null && selectedGlobalIndices.Count > 0)
+            {
+                indices = selectedGlobalIndices.OrderBy(i => i).ToList();
+            }
+            else if (lstFiles.SelectedIndices.Count > 0)
+            {
+                foreach (int local in lstFiles.SelectedIndices)
+                {
+                    int global = currentPage * pageSize + local;
+                    indices.Add(global);
+                }
+                indices = indices.OrderBy(i => i).ToList();
+            }
+
+            if (indices.Count == 0)
+            {
+                MessageBox.Show("재생할 프레임을 선택하세요 (Shift+트랙바 또는 리스트뷰).", "알림", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            // 재생 큐 생성
+            playQueue = indices;
+            // 즉시 첫 프레임을 보여주고 다음 tick에서 두번째 요소부터 재생되게 설정
+            playQueuePos = 0;
+            currentImageIndex = playQueue[0];
+            if (currentImageIndex >= 0 && currentImageIndex < carImages.Count)
+            {
+                trbFrame.Value = currentImageIndex;
+                ShowImage(currentImageIndex);
+            }
+            playQueuePos = 1;
+            isPlayingSelectedRange = true;
+
+            // 타이머 설정(FPS 적용)
+            if (!int.TryParse(txbFPS.Text, out int fps) || fps <= 0)
+            {
+                fps = 10;
+                txbFPS.Text = "10";
+            }
+            timerPlay.Interval = 1000 / fps;
+            timerPlay.Start();
+            btnAutoPic.Text = "정지";
+            btnAutoPic.BackColor = Color.Tomato;
+            isPlaying = true;
         }
     }
 }
