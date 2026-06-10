@@ -448,6 +448,9 @@ namespace Donkey_car_manager
         }
         // 동키카 그래프를 위한 코드
         private Chart chartDriveData; // 전역 변수로 차트 선언
+        // 차트의 실시간 스크롤(슬라이딩 윈도우) 설정
+        private int chartWindowSize = 100; // 화면에 표시할 최신 포인트 수
+        private bool trimOldChartData = false; // 오래된 데이터를 실제로 삭제할지 여부
 
         private void InitDriveChart()
         {
@@ -540,8 +543,53 @@ namespace Donkey_car_manager
 
             Series sA = chartDriveData.Series["user/angle"];
             Series sT = chartDriveData.Series["user/throttle"];
+            // 새 데이터 추가
             sA.Points.AddXY(frameIndex, angle);
             sT.Points.AddXY(frameIndex, throttle);
+
+            // 실시간 슬라이딩 윈도우: AxisX 범위를 최신 chartWindowSize 포인트로 이동
+            ChartArea area = chartDriveData.ChartAreas.IndexOf("DriveArea") >= 0 ? chartDriveData.ChartAreas["DriveArea"] : null;
+            if (area != null)
+            {
+                double latest = frameIndex;
+                double minVisible;
+                double maxVisible = latest;
+
+                if (latest >= chartWindowSize - 1)
+                {
+                    minVisible = latest - (chartWindowSize - 1);
+                }
+                else
+                {
+                    minVisible = 0;
+                    // ensure maximum shows at least the window size early on
+                    maxVisible = Math.Max(latest, chartWindowSize - 1);
+                }
+
+                try
+                {
+                    area.AxisX.Minimum = minVisible;
+                    area.AxisX.Maximum = maxVisible;
+                }
+                catch { }
+
+                // 필요 시 오래된 포인트를 실제로 제거하여 성능 최적화
+                if (trimOldChartData && chartWindowSize > 0)
+                {
+                    double threshold = minVisible;
+                    foreach (var s in chartDriveData.Series)
+                    {
+                        // while 첫 포인트가 임계값보다 작으면 제거
+                        while (s.Points.Count > 0 && s.Points[0].XValue < threshold)
+                        {
+                            s.Points.RemoveAt(0);
+                        }
+                    }
+                }
+
+                // 차트 갱신
+                try { chartDriveData.Invalidate(); } catch { }
+            }
         }
         //메세지박스 뜨는거 주석처리했습니다
         private void Form1_Shown(object sender, EventArgs e)
