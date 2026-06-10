@@ -410,6 +410,10 @@ namespace Donkey_car_manager
             timerPlay.Stop();
             btnAutoPic.Text = "자동 넘기기";
             btnAutoPic.BackColor = SystemColors.Control; // 버튼 색상 원상복구
+                                                         // 버튼 원래대로 복구
+            btnmp.Text = "다중 선택된 부분만 재생";      // 원래 버튼에 쓰여있던 글자로 바꿔
+            btnmp.BackColor = SystemColors.Control;
+
             isPlaying = false;
             // 다중 선택 재생 모드 초기화
             isPlayingSelectedRange = false;
@@ -474,6 +478,7 @@ namespace Donkey_car_manager
 
                     UpdateRangeHighlight();
                     UpdateSelectedFileLabel();
+                    UpdatePlaySelectLabel();
                     UpdateBtnMpVisibility();
                 }
                 else if (e.KeyCode == Keys.O)
@@ -511,6 +516,7 @@ namespace Donkey_car_manager
                     SyncListViewMultiSelection();
                     UpdateRangeHighlight();
                     UpdateSelectedFileLabel();
+                    UpdatePlaySelectLabel();
                     UpdateBtnMpVisibility();
                 }
 
@@ -923,6 +929,7 @@ namespace Donkey_car_manager
             try { if (lblFilenumber != null) lblFilenumber.Text = text; } catch { }
         }
 
+
         // selectedGlobalIndices 기반으로 lblFilenumber에 선택된 파일 번호를 표시
         private void UpdateSelectedFileLabel()
         {
@@ -930,37 +937,38 @@ namespace Donkey_car_manager
 
             if (selectedGlobalIndices == null || selectedGlobalIndices.Count == 0)
             {
-                // 선택된 항목이 없으면 기본 visible range 표시
                 UpdateVisibleRangeLabel();
                 return;
             }
 
             var sorted = selectedGlobalIndices.OrderBy(i => i).ToList();
-            int count = sorted.Count;
-            int first = sorted.First();
-            int last = sorted.Last();
 
-            string text;
-            if (last - first + 1 == count)
+            List<string> ranges = new List<string>();
+
+            int start = sorted[0];
+            int end = sorted[0];
+
+            for (int i = 1; i < sorted.Count; i++)
             {
-                // 연속적인 범위일 때
-                text = $"{first + 1} ~ {last + 1}";
-            }
-            else
-            {
-                // 비연속일 때: 최대 10개까지 나열, 나머지는 개수로 표시
-                var preview = sorted.Take(10).Select(i => (i + 1).ToString()).ToArray();
-                if (count <= 10)
+                if (sorted[i] == end + 1)
                 {
-                    text = string.Join(",", preview);
+                    end = sorted[i];
                 }
                 else
                 {
-                    text = string.Join(",", preview) + $" ... ({count})";
+                    ranges.Add(start == end
+                        ? $"{start + 1}"
+                        : $"{start + 1} ~ {end + 1}");
+
+                    start = end = sorted[i];
                 }
             }
 
-            try { lblFilenumber.Text = text; } catch { }
+            ranges.Add(start == end
+                ? $"{start + 1}"
+                : $"{start + 1} ~ {end + 1}");
+
+            lblFilenumber.Text = string.Join(", ", ranges);
         }
 
         // 선택 상태에 따라 btnmp(선택 재생 버튼)의 Visible을 갱신한다.
@@ -980,7 +988,7 @@ namespace Donkey_car_manager
             try
             {
                 if (btnmp != null)
-                    btnmp.Visible = shouldShow;
+                    btnmp.Visible = true;
             }
             catch { }
         }
@@ -1035,8 +1043,10 @@ namespace Donkey_car_manager
                 }
 
                 UpdateRangeHighlight(); //
-                UpdateSelectedFileLabel(); //
-            UpdateBtnMpVisibility();
+                UpdateSelectedFileLabel();
+                UpdatePlaySelectLabel();
+
+                UpdateBtnMpVisibility();
             }
             else
             {
@@ -1055,6 +1065,47 @@ namespace Donkey_car_manager
 
                 try { trbFrame_Scroll(trbFrame, EventArgs.Empty); } catch { } //
             }
+        }
+        private void UpdatePlaySelectLabel()
+        {
+            if (lblPlaySelect == null) return;
+
+            lblPlaySelect.Text = "개수 : " + selectedGlobalIndices.Count;
+
+            if (selectedGlobalIndices == null || selectedGlobalIndices.Count == 0)
+            {
+                lblPlaySelect.Text = "선택없음";
+                return;
+            }
+
+            var sorted = selectedGlobalIndices.OrderBy(i => i).ToList();
+
+            List<string> ranges = new List<string>();
+
+            int start = sorted[0];
+            int end = sorted[0];
+
+            for (int i = 1; i < sorted.Count; i++)
+            {
+                if (sorted[i] == end + 1)
+                {
+                    end = sorted[i];
+                }
+                else
+                {
+                    ranges.Add(start == end
+                        ? $"{start + 1}"
+                        : $"{start + 1} ~ {end + 1}");
+
+                    start = end = sorted[i];
+                }
+            }
+
+            ranges.Add(start == end
+                ? $"{start + 1}"
+                : $"{start + 1} ~ {end + 1}");
+
+            lblPlaySelect.Text = string.Join(", ", ranges);
         }
         private void UpdateListPage()
         {
@@ -1626,10 +1677,7 @@ namespace Donkey_car_manager
                 // 재생 큐 기반 이동
                 if (playQueuePos >= playQueue.Count)
                 {
-                    // 끝났으면 중지
-                    StopAutoPlay();
-                    MessageBox.Show("선택된 구간 재생이 완료되었습니다.", "알림");
-                    return;
+                    playQueuePos = 0;   // 처음부터 다시
                 }
 
                 int nextIndex = playQueue[playQueuePos++];
@@ -2478,8 +2526,8 @@ namespace Donkey_car_manager
             }
             timerPlay.Interval = 1000 / fps;
             timerPlay.Start();
-            btnAutoPic.Text = "정지";
-            btnAutoPic.BackColor = Color.Tomato;
+            btnmp.Text = "정지";
+            btnmp.BackColor = Color.Tomato;
             isPlaying = true;
         }
     }
