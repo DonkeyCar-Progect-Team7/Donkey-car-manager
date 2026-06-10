@@ -439,21 +439,83 @@ namespace Donkey_car_manager
         // 폼 KeyDown 핸들러: Delete 키로 선택된 파일 삭제 트리거
         private void Form1_KeyDown(object sender, KeyEventArgs e)
         {
-            // Delete 키가 아닐 경우 무시
-            if (e.KeyCode != Keys.Delete) return;
-
-            // 텍스트 입력창 등에서 Delete가 눌렸을 때 기본 동작을 방해하지 않도록 예외 처리
+            // 텍스트 입력창 등에서 키 입력을 방해하지 않도록 예외 처리
             if (this.ActiveControl is System.Windows.Forms.TextBoxBase || this.ActiveControl is System.Windows.Forms.ComboBox || this.ActiveControl is System.Windows.Forms.NumericUpDown)
             {
                 return;
             }
 
-            // 선택된 항목이 있으면 기존의 다중 삭제 버튼 클릭 핸들러를 호출하여 동일한 동작 수행
-            bool hasSelected = (selectedGlobalIndices != null && selectedGlobalIndices.Count > 0) || (lstFiles != null && lstFiles.SelectedIndices.Count > 0);
-            if (hasSelected)
+            // Delete 키: 기존 다중 삭제 로직 트리거
+            if (e.KeyCode == Keys.Delete)
             {
-                try { btnFileMultiDel_Click(btnFileMultiDel, EventArgs.Empty); } catch { }
+                bool hasSelected = (selectedGlobalIndices != null && selectedGlobalIndices.Count > 0) || (lstFiles != null && lstFiles.SelectedIndices.Count > 0);
+                if (hasSelected)
+                {
+                    try { btnFileMultiDel_Click(btnFileMultiDel, EventArgs.Empty); } catch { }
+                    e.Handled = true;
+                }
+                return;
+            }
+
+            // I/O 키: 재생 중인 경우에만 동작 (I = in(start), O = out(end))
+            if (e.KeyCode == Keys.I || e.KeyCode == Keys.O)
+            {
+                // 영상(재생)이 실행 중인 경우에만 동작
+                if (!(isPlaying || aiStreaming)) return;
+
+                if (e.KeyCode == Keys.I)
+                {
+                    // 시작 마크
+                    multiStartIndex = currentImageIndex;
+                    multiEndIndex = multiStartIndex; // 즉시 시각적으로 표시되게 함
+                    // 초기화된 커밋 범위 제거 (새로 시작)
+                    committedRangeStart = -1;
+                    committedRangeEnd = -1;
+
+                    UpdateRangeHighlight();
+                    UpdateSelectedFileLabel();
+                    UpdateBtnMpVisibility();
+                }
+                else if (e.KeyCode == Keys.O)
+                {
+                    // 끝 마크: 시작이 설정되어 있어야 작동
+                    if (multiStartIndex == -1)
+                    {
+                        // 시작 없이 끝만 누르면 현재 인덱스를 시작으로 설정
+                        multiStartIndex = currentImageIndex;
+                    }
+
+                    multiEndIndex = currentImageIndex;
+
+                    int start = Math.Min(multiStartIndex, multiEndIndex);
+                    int end = Math.Max(multiStartIndex, multiEndIndex);
+
+                    // 선택 범위 추가
+                    for (int gi = start; gi <= end; gi++)
+                    {
+                        if (gi >= 0 && gi < (carImages?.Count ?? 0))
+                        {
+                            selectedGlobalIndices.Add(gi);
+                        }
+                    }
+
+                    // 커밋된 범위로 보관
+                    committedRangeStart = start;
+                    committedRangeEnd = end;
+
+                    // 임시 인덱스 리셋
+                    multiStartIndex = -1;
+                    multiEndIndex = -1;
+
+                    // UI 동기화
+                    SyncListViewMultiSelection();
+                    UpdateRangeHighlight();
+                    UpdateSelectedFileLabel();
+                    UpdateBtnMpVisibility();
+                }
+
                 e.Handled = true;
+                return;
             }
         }
         // 동키카 그래프를 위한 코드
