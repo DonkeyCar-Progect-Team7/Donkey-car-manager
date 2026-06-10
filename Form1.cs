@@ -2645,82 +2645,107 @@ namespace Donkey_car_manager
         /// <summary>
         /// 조향값 및 쓰로틀 기반 오토 필터링 기능 수행
         /// </summary>
+        /// <summary>
+        /// 조향값 및 쓰로틀 기반 오토 필터링 기능 수행
+        /// </summary>
         private void RunAutoFiltering()
         {
-            // 1. [방어 코드] 데이터가 아예 없는지 먼저 확인
-            if (carImages == null)
+            // 1. 전체 데이터 바구니 상태 확인
+            if (carImages == null || carImages.Count == 0)
             {
-                MessageBox.Show("데이터 바구니(carImages)가 생성되지 않았습니다. 파일을 먼저 로드하세요.", "오류", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("오토 필터링을 진행할 데이터가 로드되지 않았습니다.", "알림", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            if (carImages.Count == 0)
-            {
-                MessageBox.Show("로드된 프레임 데이터가 없습니다.", "알림", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            // 2. 리스트뷰 컨트롤이 null인지 확인 (간혹 폼 로드 전 호출될 경우 대비)
-            if (lstFiles == null)
-            {
-                Debug.WriteLine("에러: lstFiles 컨트롤이 존재하지 않습니다.");
-                return;
-            }
-
+            // 대량 변경을 위한 리스트뷰 화면 업데이트 일시 중지
             lstFiles.BeginUpdate();
+
             try
             {
-                if (selectedGlobalIndices == null) selectedGlobalIndices = new HashSet<int>();
+                // 2. 기존 다중 선택 바구니 및 리스트뷰 선택 초기화
+                if (selectedGlobalIndices == null)
+                {
+                    selectedGlobalIndices = new HashSet<int>();
+                }
                 selectedGlobalIndices.Clear();
                 lstFiles.SelectedItems.Clear();
 
-                float maxDeltaAngle = 0.6f;
-                float minThrottle = 0.05f;
-                float extremeAngle = 0.8f;
+                // 3. 필터링 감지용 임계값 세팅 (상황에 맞게 수치를 미세 조절하셔도 됩니다)
+                float maxDeltaAngle = 0.6f;     // 프레임 간 허용할 최대 조향 변화량 (노이즈 판별)
+                float minThrottle = 0.05f;      // 차량이 주행 중이라고 판단할 최소 쓰로틀
+                float extremeAngle = 0.8f;      // 정지 상태에서 불량으로 판정할 조향각 임계값
+
                 int anomalyCount = 0;
 
+                // 4. 전역 데이터(carImages) 전체 순회하며 이상치 탐색
                 for (int i = 0; i < carImages.Count; i++)
                 {
-                    // carImages[i] 객체 자체가 null인지 확인 (데이터 깨짐 방지)
-                    if (carImages[i] == null) continue;
-
                     var currentFrame = carImages[i];
                     bool isAnomaly = false;
 
-                    // [조건 검사]
+                    // [조건 A] 차량이 거의 멈춰있는데(쓰로틀 로우) 핸들만 비정상적으로 크게 꺾인 경우
                     if (Math.Abs(currentFrame.Throttle) < minThrottle && Math.Abs(currentFrame.Angle) > extremeAngle)
-                        isAnomaly = true;
-
-                    if (i > 0 && carImages[i - 1] != null) // 이전 프레임도 null 체크
                     {
-                        if (Math.Abs(currentFrame.Angle - carImages[i - 1].Angle) > maxDeltaAngle)
-                            isAnomaly = true;
+                        isAnomaly = true;
                     }
 
+                    // [조건 B] 직전 프레임과 비교해 조향각이 순간적으로 순간이동하듯 확 튄 경우
+                    if (i > 0)
+                    {
+                        var prevFrame = carImages[i - 1];
+                        float delta = Math.Abs(currentFrame.Angle - prevFrame.Angle);
+                        if (delta > maxDeltaAngle)
+                        {
+                            isAnomaly = true;
+                        }
+                    }
+
+                    // 5. 이상 데이터로 판별 시 바구니에 전역 인덱스 추가
                     if (isAnomaly)
                     {
                         selectedGlobalIndices.Add(i);
                         anomalyCount++;
 
-                        // 화면 선택 처리 (리스트뷰 아이템 개수와 비교하여 인덱스 범위 체크)
+                        // [UI 연동] 감지된 불량 프레임이 '현재 보고 있는 페이지' 범위 안의 파일이라면 화면 리스트뷰에서도 선택 처리
                         int pageStartIndex = currentPage * pageSize;
-                        int localIdx = i - pageStartIndex;
+                        int pageEndIndex = pageStartIndex + lstFiles.Items.Count;
 
-                        if (localIdx >= 0 && localIdx < lstFiles.Items.Count)
+                        if (i >= pageStartIndex && i < pageEndIndex)
                         {
-                            lstFiles.Items[localIdx].Selected = true;
+                            int localIdx = i - pageStartIndex;
+                            if (localIdx >= 0 && localIdx < lstFiles.Items.Count)
+                            {
+                                lstFiles.Items[localIdx].Selected = true;
+                            }
                         }
                     }
                 }
 
-                // ... 이하 결과 알림 로직 동일 ...
+                // 6. 결과 알림 및 후속 처리
+                if (anomalyCount > 0)
+                {
+                    // 사용 중이신 라벨 및 다중 삭제 버튼 활성화 함수가 있다면 호출해 줍니다.
+                    // (예: UpdateSelectedFileLabel(); 함수명이 있다면 주석을 해제하세요)
+                    // UpdateSelectedFileLabel(); 
+
+                    if (btnmp != null) btnmp.Visible = true;
+
+                    MessageBox.Show($"오토 필터링 결과 총 {anomalyCount}개의 불량 의심 프레임이 감지 및 전역 선택되었습니다.\n\n" +
+                                    $"'파일 다중 삭제' 버튼을 누르시면 디스크 파일과 카탈로그 레코드가 안전하게 일괄 삭제됩니다.",
+                                    "필터 완료", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
+                else
+                {
+                    MessageBox.Show("조향 노이즈나 비정상 정지 프레임이 감지되지 않았습니다. 깨끗한 데이터셋입니다!", "필터 완료", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"필터링 중 예기치 않은 오류 발생: {ex.Message}");
+                MessageBox.Show($"오토 필터링 실행 중 오류가 발생했습니다:\n{ex.Message}", "오류", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
             finally
             {
+                // 리스트뷰 업데이트 재개
                 lstFiles.EndUpdate();
             }
         }
