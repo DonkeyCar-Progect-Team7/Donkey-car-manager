@@ -15,6 +15,23 @@ namespace Donkey_car_manager
 {
     public partial class Form1 : Form
     {
+        // 클래스 내부 전역 변수 공간
+        private float currentSteering = 0.0f; // -1.0(좌) ~ 1.0(우) 현재 조향값
+        private float correctSteering = 0.0f; // -1.0(좌) ~ 1.0(우) 올바른 조향값 (★추가)
+
+        // (기존에 있을) 현재 조향값 업데이트 메서드
+        public void UpdateSteeringIndicator(float angle)
+        {
+            currentSteering = angle;
+            picCurFrame.Invalidate(); // Paint 이벤트를 발생시켜 픽처박스를 다시 그림
+        }
+
+        // 올바른 조향값 업데이트 메서드 (★추가)
+        public void UpdateCorrectSteeringIndicator(float angle)
+        {
+            correctSteering = angle;
+            picCurFrame.Invalidate(); // Paint 이벤트를 발생시켜 픽처박스를 다시 그림
+        }
         private async Task WaitForDonkeyServer()
         {
             using (HttpClient client = new HttpClient())
@@ -366,6 +383,8 @@ namespace Donkey_car_manager
         {
             public string FilePath { get; set; }
             public DateTime WriteTime { get; set; }
+            public float Angle { get; set; }      // -1.0 ~ 1.0
+            public float Throttle { get; set; }   // 0.0 ~ 1.0 (혹은 전후진 포함 -1.0 ~ 1.0)
         }
 
         // Designer에 연결된 Load 이벤트 핸들러 (빈 구현)
@@ -439,7 +458,9 @@ namespace Donkey_car_manager
             // Delete 키로 선택된 파일을 삭제할 수 있도록 폼에서 키 프리뷰를 허용하고 핸들러 등록
             this.KeyPreview = true;
             this.KeyDown += Form1_KeyDown;
+            picCurFrame.Paint += picCurFrame_Paint;
         }
+
         // 폼 KeyDown 핸들러: Delete 키로 선택된 파일 삭제 트리거
         private void Form1_KeyDown(object sender, KeyEventArgs e)
         {
@@ -749,12 +770,23 @@ namespace Donkey_car_manager
 
                     // 3. 🌟 핵심: 파일을 로드하는 이 시점에 '딱 한 번만' 디스크에서 수정 시간을 읽어와 저장합니다.
                     // 이렇게 메모리에 미리 다 올려두어야 나중에 정렬할 때 렉이 전혀 안 걸립니다.
+                    // 파일 오픈 시 반복문 내부 예시
                     foreach (string file in files)
                     {
+                        float angle = 0f;
+                        float throttle = 0f;
+
+                        // 예시: 동키카 기본 저장 포맷 파싱 (파일명 구조: _user_angle_XXX_user_throttle_YYY_)
+                        // 파일명 규칙에 맞게 정규식(Regex)이나 Split 문으로 조향/쓰로틀 값을 파싱해줍니다.
+                        string fileName = Path.GetFileNameWithoutExtension(file);
+                        // [개발자님의 파일네임 파싱 알고리즘 추가 공간]
+
                         carImages.Add(new CarFileInfo
                         {
                             FilePath = file,
-                            WriteTime = System.IO.File.GetLastWriteTime(file)
+                            WriteTime = System.IO.File.GetLastWriteTime(file),
+                            Angle = angle,
+                            Throttle = throttle
                         });
                     }
 
@@ -836,7 +868,8 @@ namespace Donkey_car_manager
                     chartDriveData.Series["user/angle"].Points.Count,
                     angle,
                     throttle);
-
+                // 🌟 [추가] 새로 계산된 조향값을 바늘(인디케이터)에 전달하고 픽처박스를 다시 그리게 합니다.
+                UpdateSteeringIndicator((float)angle);
                 chartDriveData.Refresh();
             }
 
@@ -2529,6 +2562,173 @@ namespace Donkey_car_manager
             btnmp.Text = "정지";
             btnmp.BackColor = Color.Tomato;
             isPlaying = true;
+        }
+        /*private void UpdateSteeringIndicator(float steeringValue)
+        {
+            // 1. 최신 조향값 업데이트
+            currentSteering = steeringValue;
+
+            // 2. 픽처박스에게 "화면이 바뀌었으니 Paint 이벤트를 다시 실행해라"고 명령 (강제 새로고침)
+            picCurFrame.Invalidate();
+        }*/
+
+        private void picCurFrame_Paint(object sender, PaintEventArgs e)
+        {
+            Graphics g = e.Graphics;
+
+            // 선을 부드럽게 그리기 위한 안티앨리어싱 설정
+            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+
+            // 1. 조향계의 중심축(회전 중심) 설정 (픽처박스 하단 중앙)
+            int centerX = picCurFrame.Width / 2;
+            int centerY = picCurFrame.Height - 20; // 하단에서 20픽셀 위
+
+            // 두 바늘의 길이를 살짝 다르게 하면 겹쳤을 때도 구분이 쉽습니다.
+            int currentLineLength = 60; // 현재 조향 바늘 길이
+            int correctLineLength = 75; // 올바른 조향 바늘 길이 (더 길게 처리)
+
+            // 최대 좌우 회전 각도 (예: 45도)
+            float maxRotationAngle = 45.0f;
+
+            // ------------------------------------------------------------
+            // 2. [그리기 1] 올바른 조향값 (바탕/기준선 역할을 하도록 먼저 그리기)
+            // ------------------------------------------------------------
+            float correctAngle = correctSteering * maxRotationAngle;
+
+            // 현재 그래픽 상태 저장 (회전 후 원상복구하기 위함)
+            System.Drawing.Drawing2D.GraphicsState basicState = g.Save();
+
+            // 그래픽 좌표계를 중심축으로 이동 후 각도만큼 회전
+            g.TranslateTransform(centerX, centerY);
+            g.RotateTransform(correctAngle);
+
+            // 두께 5의 주황색(Orange) 선으로 올바른 조향값 그리기
+            using (Pen correctPen = new Pen(Color.Orange, 5))
+            {
+                // 끝부분을 둥글게 마감처리
+                correctPen.StartCap = System.Drawing.Drawing2D.LineCap.Round;
+                correctPen.EndCap = System.Drawing.Drawing2D.LineCap.ArrowAnchor; // 화살표 모양 종점
+
+                // (0,0)에서 출발하여 직선 위쪽 방향인 (0, -correctLineLength)까지 선을 긋습니다.
+                g.DrawLine(correctPen, 0, 0, 0, -correctLineLength);
+            }
+
+            // 그래픽 상태를 처음 상태로 리셋
+            g.Restore(basicState);
+
+            // ------------------------------------------------------------
+            // 3. [그리기 2] 현재 조향값 (그 위에 덮어쓰기)
+            // ------------------------------------------------------------
+            float currentAngle = currentSteering * maxRotationAngle;
+
+            // 다시 그래픽 좌표계를 중심축으로 이동 후 각도만큼 회전
+            g.TranslateTransform(centerX, centerY);
+            g.RotateTransform(currentAngle);
+
+            // 두께 4의 형광 녹색(LimeGreen) 선으로 현재 조향값 그리기
+            using (Pen steeringPen = new Pen(Color.LimeGreen, 4))
+            {
+                steeringPen.StartCap = System.Drawing.Drawing2D.LineCap.Round;
+                steeringPen.EndCap = System.Drawing.Drawing2D.LineCap.ArrowAnchor;
+
+                // (0,0)에서 출발하여 직선 위쪽 방향인 (0, -lineLength)까지 선을 긋습니다.
+                g.DrawLine(steeringPen, 0, 0, 0, -currentLineLength);
+            }
+
+            // 중심축에 작은 원을 그려서 앵커 포인트를 깔끔하게 마감
+            g.ResetTransform();
+            using (Brush centerBrush = new SolidBrush(Color.White))
+            {
+                g.FillEllipse(centerBrush, centerX - 5, centerY - 5, 10, 10);
+            }
+        }
+        /// <summary>
+        /// 조향값 및 쓰로틀 기반 오토 필터링 기능 수행
+        /// </summary>
+        private void RunAutoFiltering()
+        {
+            // 1. [방어 코드] 데이터가 아예 없는지 먼저 확인
+            if (carImages == null)
+            {
+                MessageBox.Show("데이터 바구니(carImages)가 생성되지 않았습니다. 파일을 먼저 로드하세요.", "오류", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            if (carImages.Count == 0)
+            {
+                MessageBox.Show("로드된 프레임 데이터가 없습니다.", "알림", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            // 2. 리스트뷰 컨트롤이 null인지 확인 (간혹 폼 로드 전 호출될 경우 대비)
+            if (lstFiles == null)
+            {
+                Debug.WriteLine("에러: lstFiles 컨트롤이 존재하지 않습니다.");
+                return;
+            }
+
+            lstFiles.BeginUpdate();
+            try
+            {
+                if (selectedGlobalIndices == null) selectedGlobalIndices = new HashSet<int>();
+                selectedGlobalIndices.Clear();
+                lstFiles.SelectedItems.Clear();
+
+                float maxDeltaAngle = 0.6f;
+                float minThrottle = 0.05f;
+                float extremeAngle = 0.8f;
+                int anomalyCount = 0;
+
+                for (int i = 0; i < carImages.Count; i++)
+                {
+                    // carImages[i] 객체 자체가 null인지 확인 (데이터 깨짐 방지)
+                    if (carImages[i] == null) continue;
+
+                    var currentFrame = carImages[i];
+                    bool isAnomaly = false;
+
+                    // [조건 검사]
+                    if (Math.Abs(currentFrame.Throttle) < minThrottle && Math.Abs(currentFrame.Angle) > extremeAngle)
+                        isAnomaly = true;
+
+                    if (i > 0 && carImages[i - 1] != null) // 이전 프레임도 null 체크
+                    {
+                        if (Math.Abs(currentFrame.Angle - carImages[i - 1].Angle) > maxDeltaAngle)
+                            isAnomaly = true;
+                    }
+
+                    if (isAnomaly)
+                    {
+                        selectedGlobalIndices.Add(i);
+                        anomalyCount++;
+
+                        // 화면 선택 처리 (리스트뷰 아이템 개수와 비교하여 인덱스 범위 체크)
+                        int pageStartIndex = currentPage * pageSize;
+                        int localIdx = i - pageStartIndex;
+
+                        if (localIdx >= 0 && localIdx < lstFiles.Items.Count)
+                        {
+                            lstFiles.Items[localIdx].Selected = true;
+                        }
+                    }
+                }
+
+                // ... 이하 결과 알림 로직 동일 ...
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"필터링 중 예기치 않은 오류 발생: {ex.Message}");
+            }
+            finally
+            {
+                lstFiles.EndUpdate();
+            }
+        }
+
+        private void btnAutoFilter_Click(object sender, EventArgs e)
+        {
+            // 오토 필터링 시작
+            RunAutoFiltering();
         }
     }
 }
