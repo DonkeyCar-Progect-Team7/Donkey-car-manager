@@ -758,8 +758,17 @@ namespace Donkey_car_manager
                     currentSelectedFolderPath = fbd.SelectedPath; //경로를 연 폴더의 위치를 저장
                     // 1. 선택한 폴더에서 JPG 이미지 파일 목록을 배열로 가져옵니다.
                     // 대소문자 .jpg, .JPG는 물론이고 .jpeg까지 알아서 다 찾아주는 코드입니다.
-                    string[] files = System.IO.Directory.GetFiles(fbd.SelectedPath, "*.*")
-                        .Where(s => s.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) ||
+                    string imageFolder = Path.Combine(fbd.SelectedPath, "images");
+
+                    if (!Directory.Exists(imageFolder))
+                    {
+                        MessageBox.Show("선택한 폴더 안에 images 폴더가 없습니다.");
+                        return;
+                    }
+
+                    string[] files = Directory.GetFiles(imageFolder, "*.*")
+
+                                            .Where(s => s.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) ||
                                     s.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase) ||
                                     s.EndsWith(".png", StringComparison.OrdinalIgnoreCase) ||
                                     s.EndsWith(".bmp", StringComparison.OrdinalIgnoreCase))
