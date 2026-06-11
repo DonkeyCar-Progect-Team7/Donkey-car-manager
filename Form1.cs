@@ -1571,7 +1571,8 @@ namespace Donkey_car_manager
                 // 3. 🌟 [핵심 기능] 카탈로그(catalog_*.catalog) 파일 내용 동시 수정
                 if (!string.IsNullOrEmpty(targetDirectory) && Directory.Exists(targetDirectory))
                 {
-                    string[] catalogFiles = Directory.GetFiles(targetDirectory, "catalog_*.catalog");
+                    string dataDirectory = Path.GetDirectoryName(targetDirectory);
+                    string[] catalogFiles = Directory.GetFiles(dataDirectory, "catalog_*.catalog");
 
                     foreach (string catalogPath in catalogFiles)
                     {

@@ -441,10 +441,10 @@
             rtbLearningLog.BackColor = Color.Black;
             rtbLearningLog.Font = new Font("Consolas", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
             rtbLearningLog.ForeColor = Color.Lime;
-            rtbLearningLog.Location = new Point(236, 15);
+            rtbLearningLog.Location = new Point(236, 12);
             rtbLearningLog.Name = "rtbLearningLog";
             rtbLearningLog.ReadOnly = true;
-            rtbLearningLog.Size = new Size(665, 397);
+            rtbLearningLog.Size = new Size(665, 400);
             rtbLearningLog.TabIndex = 31;
             rtbLearningLog.Text = "";
             rtbLearningLog.Visible = false;
@@ -491,10 +491,10 @@
             // 
             lblPlaySelect.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             lblPlaySelect.AutoSize = true;
-            lblPlaySelect.Font = new Font("맑은 고딕", 12F, FontStyle.Regular, GraphicsUnit.Point, 129);
-            lblPlaySelect.Location = new Point(143, 206);
+            lblPlaySelect.Font = new Font("맑은 고딕", 1.5F, FontStyle.Regular, GraphicsUnit.Point, 129);
+            lblPlaySelect.Location = new Point(-5, 576);
             lblPlaySelect.Name = "lblPlaySelect";
-            lblPlaySelect.Size = new Size(80, 21);
+            lblPlaySelect.Size = new Size(11, 2);
             lblPlaySelect.TabIndex = 35;
             lblPlaySelect.Text = "선택 없음";
             lblPlaySelect.TextAlign = ContentAlignment.TopCenter;
